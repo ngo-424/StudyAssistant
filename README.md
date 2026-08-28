@@ -1,2 +1,14 @@
 # StudyAssistant
-schedule your time , improve your efficiency and attention,focus on yourself.
+
+StudyAssistant 是一个面向 HarmonyOS 手机和平板的本地优先专注计时工具。
+
+当前重构阶段已经建立四个一级入口：专注、数据、任务和我的。客户端采用页面、功能状态、领域逻辑和数据访问分层，后续模块将在这一骨架上逐步加入本地数据、专注计时、统计、奖励与跨设备能力。
+
+## 工程结构
+
+- `app`：应用初始化和一级导航状态。
+- `core`：设计令牌、日志、错误等公共能力。
+- `features`：按专注、数据、任务和设置拆分的功能模块。
+- `shared`：跨功能复用的 ArkUI 组件。
+
+开发构建使用项目配置的 HarmonyOS SDK 26 工具链。

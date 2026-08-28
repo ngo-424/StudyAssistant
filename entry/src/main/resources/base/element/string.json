@@ -2,15 +2,139 @@
   "string": [
     {
       "name": "module_desc",
-      "value": "module description"
+      "value": "StudyAssistant 专注计时工具"
     },
     {
       "name": "EntryAbility_desc",
-      "value": "description"
+      "value": "记录专注，了解自己的学习节奏"
     },
     {
       "name": "EntryAbility_label",
-      "value": "label"
+      "value": "StudyAssistant"
+    },
+    {
+      "name": "tab_focus",
+      "value": "专注"
+    },
+    {
+      "name": "tab_insights",
+      "value": "数据"
+    },
+    {
+      "name": "tab_tasks",
+      "value": "任务"
+    },
+    {
+      "name": "tab_settings",
+      "value": "我的"
+    },
+    {
+      "name": "focus_title",
+      "value": "专注"
+    },
+    {
+      "name": "focus_subtitle",
+      "value": "给当下留一段不被打扰的时间"
+    },
+    {
+      "name": "focus_ready",
+      "value": "准备开始"
+    },
+    {
+      "name": "focus_free",
+      "value": "自由专注"
+    },
+    {
+      "name": "focus_start",
+      "value": "开始专注"
+    },
+    {
+      "name": "focus_module_hint",
+      "value": "计时能力将在专注模块启用"
+    },
+    {
+      "name": "insights_title",
+      "value": "学习数据"
+    },
+    {
+      "name": "insights_subtitle",
+      "value": "从每一次专注中看见长期变化"
+    },
+    {
+      "name": "today_focus",
+      "value": "今日专注"
+    },
+    {
+      "name": "completed_rounds",
+      "value": "完成轮次"
+    },
+    {
+      "name": "current_streak",
+      "value": "连续天数"
+    },
+    {
+      "name": "weekly_trend",
+      "value": "近 7 天趋势"
+    },
+    {
+      "name": "insights_empty",
+      "value": "完成第一次专注后，这里会展示你的节奏"
+    },
+    {
+      "name": "tasks_title",
+      "value": "学习任务"
+    },
+    {
+      "name": "tasks_subtitle",
+      "value": "用类别和时间规划下一次专注"
+    },
+    {
+      "name": "tasks_empty_title",
+      "value": "还没有任务"
+    },
+    {
+      "name": "tasks_empty_body",
+      "value": "你可以直接开始自由专注，也可以稍后创建任务"
+    },
+    {
+      "name": "tasks_create",
+      "value": "创建第一个任务"
+    },
+    {
+      "name": "settings_title",
+      "value": "我的"
+    },
+    {
+      "name": "settings_subtitle",
+      "value": "管理偏好、数据和账号"
+    },
+    {
+      "name": "guest_mode",
+      "value": "游客模式"
+    },
+    {
+      "name": "guest_mode_desc",
+      "value": "数据仅保存在当前设备"
+    },
+    {
+      "name": "focus_settings",
+      "value": "专注设置"
+    },
+    {
+      "name": "focus_settings_desc",
+      "value": "25 分钟专注 · 5 分钟休息"
+    },
+    {
+      "name": "appearance",
+      "value": "外观"
+    },
+    {
+      "name": "appearance_desc",
+      "value": "跟随系统"
+    },
+    {
+      "name": "coming_later",
+      "value": "将在后续模块开放"
     }
   ]
 }
