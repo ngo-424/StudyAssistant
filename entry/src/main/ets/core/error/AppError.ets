@@ -1,7 +1,9 @@
 export enum AppErrorCode {
   UNKNOWN = 'UNKNOWN',
   INITIALIZATION = 'INITIALIZATION',
-  VALIDATION = 'VALIDATION'
+  VALIDATION = 'VALIDATION',
+  DATABASE = 'DATABASE',
+  MIGRATION = 'MIGRATION'
 }
 
 export class AppError extends Error {
