@@ -22,6 +22,43 @@ export enum SyncState {
   CONFLICT = 'conflict'
 }
 
+export enum TimerRunState {
+  IDLE = 'idle',
+  RUNNING = 'running',
+  PAUSED = 'paused',
+  COMPLETED = 'completed',
+  ABANDONED = 'abandoned'
+}
+
+export interface TimerConfig {
+  focusMinutes: number
+  shortBreakMinutes: number
+  longBreakMinutes: number
+  longBreakEvery: number
+}
+
+export interface ActiveTimerSnapshot {
+  flowId: string
+  phaseSessionId: string
+  profileId: string
+  taskId: string | null
+  categoryId: string | null
+  phase: FocusPhase
+  state: TimerRunState
+  terminalResult: FocusResult | null
+  config: TimerConfig
+  plannedSeconds: number
+  startedAt: number
+  deadlineAt: number
+  pausedAt: number | null
+  remainingSecondsAtPause: number | null
+  accumulatedPausedMs: number
+  completedFocusRounds: number
+  lastObservedAt: number
+  lastKnownRemainingSeconds: number
+  updatedAt: number
+}
+
 export interface TaskCategory {
   id: string
   profileId: string

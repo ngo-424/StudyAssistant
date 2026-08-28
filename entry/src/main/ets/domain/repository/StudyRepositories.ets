@@ -1,11 +1,13 @@
 import {
+  ActiveTimerSnapshot,
   AchievementProgress,
   FocusSession,
   RewardEvent,
   SettingEntry,
   StudyTask,
   SyncMetadata,
-  TaskCategory
+  TaskCategory,
+  TimerConfig
 } from '../model/StudyModels'
 
 export interface TaskRepository {
@@ -34,6 +36,16 @@ export interface RewardRepository {
 export interface SettingsRepository {
   save(entry: SettingEntry): Promise<void>
   find(profileId: string, key: string): Promise<SettingEntry | null>
+  remove(profileId: string, key: string): Promise<void>
+}
+
+export interface TimerStateRepository {
+  saveConfig(profileId: string, config: TimerConfig): Promise<void>
+  loadConfig(profileId: string): Promise<TimerConfig | null>
+  saveSnapshot(snapshot: ActiveTimerSnapshot): Promise<void>
+  loadSnapshot(profileId: string): Promise<ActiveTimerSnapshot | null>
+  clearSnapshot(profileId: string): Promise<void>
+  getOrCreateDeviceId(profileId: string, idFactory: () => string): Promise<string>
 }
 
 export interface SyncMetadataRepository {
