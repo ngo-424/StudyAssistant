@@ -5,7 +5,9 @@ import { AppLogger } from '../core/logging/AppLogger'
 
 export default class EntryAbility extends UIAbility {
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
-    AppInitializer.initialize()
+    AppInitializer.initialize(this.context).catch((error: Error) => {
+      AppLogger.error('EntryAbility', `Application initialization failed: ${error.message}`)
+    })
     try {
       this.context.getApplicationContext().setColorMode(ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET)
     } catch (error) {
