@@ -10,12 +10,29 @@ import {
 
 export class AppInitializer {
   private static initialized: boolean = false
+  private static initializationPromise: Promise<void> | null = null
 
-  static async initialize(context: common.UIAbilityContext): Promise<void> {
+  static initialize(context: common.UIAbilityContext): Promise<void> {
     if (AppInitializer.initialized) {
-      return
+      return Promise.resolve()
     }
+    if (AppInitializer.initializationPromise === null) {
+      AppInitializer.initializationPromise = AppInitializer.performInitialize(context)
+    }
+    return AppInitializer.initializationPromise
+  }
 
+  static whenReady(): Promise<void> {
+    if (AppInitializer.initialized) {
+      return Promise.resolve()
+    }
+    if (AppInitializer.initializationPromise === null) {
+      return Promise.reject(new Error('Application initialization has not started'))
+    }
+    return AppInitializer.initializationPromise
+  }
+
+  private static async performInitialize(context: common.UIAbilityContext): Promise<void> {
     const store = await AppDatabase.open(context)
     RepositoryRegistry.initialize(store)
     const migrationResult: LegacyMigrationResult = await LegacyDataMigrator.migrate(context, store)

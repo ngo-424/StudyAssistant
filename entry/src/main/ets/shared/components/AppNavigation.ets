@@ -111,7 +111,7 @@ export struct AppNavigation {
 
         Blank()
 
-        Text('v1 · FOUNDATION')
+        Text('v1 · LOCAL FIRST')
           .fontSize(10)
           .fontColor($r('app.color.text_tertiary'))
       }

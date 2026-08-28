@@ -49,12 +49,24 @@
       "value": "#E1E5EA"
     },
     {
+      "name": "border_strong",
+      "value": "#ADB6C2"
+    },
+    {
       "name": "success",
       "value": "#4D8468"
     },
     {
       "name": "category_neutral",
       "value": "#778291"
+    },
+    {
+      "name": "danger",
+      "value": "#A84242"
+    },
+    {
+      "name": "danger_container",
+      "value": "#F8E7E7"
     }
   ]
 }

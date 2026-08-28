@@ -11,13 +11,13 @@ import {
 export interface TaskRepository {
   save(task: StudyTask): Promise<void>
   findById(id: string): Promise<StudyTask | null>
-  findAll(profileId: string): Promise<StudyTask[]>
+  findAll(profileId: string, includeDeleted?: boolean): Promise<StudyTask[]>
   softDelete(id: string, deletedAt: number): Promise<void>
 }
 
 export interface CategoryRepository {
   save(category: TaskCategory): Promise<void>
-  findAll(profileId: string): Promise<TaskCategory[]>
+  findAll(profileId: string, includeDeleted?: boolean): Promise<TaskCategory[]>
   softDelete(id: string, deletedAt: number): Promise<void>
 }
 
