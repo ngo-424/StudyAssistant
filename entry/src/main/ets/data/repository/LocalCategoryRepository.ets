@@ -33,13 +33,14 @@ export class LocalCategoryRepository implements CategoryRepository {
     }
   }
 
-  async findAll(profileId: string): Promise<TaskCategory[]> {
+  async findAll(profileId: string, includeDeleted: boolean = false): Promise<TaskCategory[]> {
     let resultSet: relationalStore.ResultSet | null = null
     const categories: TaskCategory[] = []
     try {
+      const deletedClause: string = includeDeleted ? '' : 'AND deleted_at IS NULL'
       resultSet = await this.store.querySql(
         `SELECT ${CATEGORY_COLUMNS} FROM ${DatabaseTable.CATEGORIES}
-         WHERE profile_id = ? AND deleted_at IS NULL ORDER BY created_at ASC`, [profileId])
+         WHERE profile_id = ? ${deletedClause} ORDER BY created_at ASC`, [profileId])
       while (resultSet.goToNextRow()) {
         categories.push({
           id: ResultSetReader.string(resultSet, 'id'),
@@ -65,7 +66,8 @@ export class LocalCategoryRepository implements CategoryRepository {
     try {
       await this.store.executeSql(
         `UPDATE ${DatabaseTable.CATEGORIES}
-         SET deleted_at = ?, updated_at = ?, revision = revision + 1, sync_state = ? WHERE id = ?`,
+         SET deleted_at = ?, updated_at = ?, revision = revision + 1,
+         sync_state = CASE WHEN sync_state = 'local_only' THEN 'local_only' ELSE ? END WHERE id = ?`,
         [deletedAt, deletedAt, SyncState.PENDING, id])
     } catch (error) {
       throw new AppError(AppErrorCode.DATABASE, `Unable to delete category: ${JSON.stringify(error)}`)

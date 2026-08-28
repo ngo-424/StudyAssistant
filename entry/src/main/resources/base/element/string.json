@@ -135,6 +135,158 @@
     {
       "name": "coming_later",
       "value": "将在后续模块开放"
+    },
+    {
+      "name": "common_add",
+      "value": "添加"
+    },
+    {
+      "name": "common_cancel",
+      "value": "取消"
+    },
+    {
+      "name": "common_clear",
+      "value": "清除"
+    },
+    {
+      "name": "common_delete",
+      "value": "删除"
+    },
+    {
+      "name": "common_edit",
+      "value": "编辑"
+    },
+    {
+      "name": "common_loading",
+      "value": "正在读取本地任务"
+    },
+    {
+      "name": "common_restore",
+      "value": "恢复"
+    },
+    {
+      "name": "common_save",
+      "value": "保存"
+    },
+    {
+      "name": "minutes_unit",
+      "value": "分钟"
+    },
+    {
+      "name": "tasks_create_short",
+      "value": "+ 新建"
+    },
+    {
+      "name": "tasks_filter_todo",
+      "value": "进行中"
+    },
+    {
+      "name": "tasks_filter_completed",
+      "value": "已完成"
+    },
+    {
+      "name": "tasks_filter_deleted",
+      "value": "回收站"
+    },
+    {
+      "name": "tasks_empty_filtered_title",
+      "value": "这里暂时是空的"
+    },
+    {
+      "name": "tasks_empty_filtered_body",
+      "value": "切换任务状态或类别即可查看其他任务"
+    },
+    {
+      "name": "task_create_title",
+      "value": "创建任务"
+    },
+    {
+      "name": "task_edit_title",
+      "value": "编辑任务"
+    },
+    {
+      "name": "task_editor_hint",
+      "value": "任务可以稍后关联到一次专注"
+    },
+    {
+      "name": "task_create_action",
+      "value": "创建任务"
+    },
+    {
+      "name": "task_field_title",
+      "value": "任务名称"
+    },
+    {
+      "name": "task_title_placeholder",
+      "value": "例如：复习第三章"
+    },
+    {
+      "name": "task_field_notes",
+      "value": "备注"
+    },
+    {
+      "name": "task_notes_placeholder",
+      "value": "记录资料、目标或完成标准"
+    },
+    {
+      "name": "task_field_duration",
+      "value": "预计时长"
+    },
+    {
+      "name": "task_field_due",
+      "value": "截止日期"
+    },
+    {
+      "name": "task_field_category",
+      "value": "任务类别"
+    },
+    {
+      "name": "task_delete_title",
+      "value": "将任务移到回收站？"
+    },
+    {
+      "name": "task_delete_message",
+      "value": "任务不会立即清除，你可以在回收站中恢复。"
+    },
+    {
+      "name": "category_manage_action",
+      "value": "类别"
+    },
+    {
+      "name": "category_manage_title",
+      "value": "任务类别"
+    },
+    {
+      "name": "category_manage_hint",
+      "value": "同一类别会在任务、计时和数据中沿用同一色系"
+    },
+    {
+      "name": "category_create_action",
+      "value": "+ 新建类别"
+    },
+    {
+      "name": "category_empty",
+      "value": "还没有自定义类别"
+    },
+    {
+      "name": "category_deleted_title",
+      "value": "已删除类别"
+    },
+    {
+      "name": "category_name_placeholder",
+      "value": "类别名称"
+    },
+    {
+      "name": "category_custom_color",
+      "value": "自定义颜色"
+    },
+    {
+      "name": "category_delete_title",
+      "value": "删除这个类别？"
+    },
+    {
+      "name": "category_delete_message",
+      "value": "任务不会被删除，暂时会显示为未分类；恢复类别后关联也会恢复。"
     }
   ]
 }

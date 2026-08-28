@@ -50,13 +50,14 @@ export class LocalTaskRepository implements TaskRepository {
     }
   }
 
-  async findAll(profileId: string): Promise<StudyTask[]> {
+  async findAll(profileId: string, includeDeleted: boolean = false): Promise<StudyTask[]> {
     let resultSet: relationalStore.ResultSet | null = null
     const tasks: StudyTask[] = []
     try {
+      const deletedClause: string = includeDeleted ? '' : 'AND deleted_at IS NULL'
       resultSet = await this.store.querySql(
         `SELECT ${TASK_COLUMNS} FROM ${DatabaseTable.TASKS}
-         WHERE profile_id = ? AND deleted_at IS NULL
+         WHERE profile_id = ? ${deletedClause}
          ORDER BY CASE WHEN due_at IS NULL THEN 1 ELSE 0 END, due_at ASC, created_at DESC`, [profileId])
       while (resultSet.goToNextRow()) {
         tasks.push(this.map(resultSet))
@@ -73,7 +74,8 @@ export class LocalTaskRepository implements TaskRepository {
     try {
       await this.store.executeSql(
         `UPDATE ${DatabaseTable.TASKS}
-         SET deleted_at = ?, updated_at = ?, revision = revision + 1, sync_state = ? WHERE id = ?`,
+         SET deleted_at = ?, updated_at = ?, revision = revision + 1,
+         sync_state = CASE WHEN sync_state = 'local_only' THEN 'local_only' ELSE ? END WHERE id = ?`,
         [deletedAt, deletedAt, SyncState.PENDING, id])
     } catch (error) {
       throw new AppError(AppErrorCode.DATABASE, `Unable to delete task: ${JSON.stringify(error)}`)
