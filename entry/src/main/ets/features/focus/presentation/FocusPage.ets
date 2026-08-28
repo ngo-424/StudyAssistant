@@ -1,3 +1,4 @@
+import { common } from '@kit.AbilityKit'
 import { AppError } from '../../../core/error/AppError'
 import { AppBreakpoint, AppRadius, AppSpacing, AppTypography } from '../../../core/design/DesignTokens'
 import {
@@ -11,10 +12,17 @@ import { TimerRuntimeState } from '../domain/TimerModels'
 import { TimerConfigRules } from '../domain/TimerConfigRules'
 import { FocusPresentation } from './FocusPresentation'
 import { FocusScreenData, FocusViewModel } from './FocusViewModel'
+import { FocusSystemPolicy } from '../system/FocusSystemPolicy'
+import {
+  CapabilityState,
+  FocusSystemStatus,
+  FocusSystemStatusFactory
+} from '../system/FocusSystemModels'
 
 @Component
 export struct FocusPage {
   @Prop isWide: boolean = false
+  @Prop isCompact: boolean = false
   @State tasks: StudyTask[] = []
   @State categories: TaskCategory[] = []
   @State selectedTaskId: string = ''
@@ -24,6 +32,7 @@ export struct FocusPage {
   @State loading: boolean = true
   @State actionBusy: boolean = false
   @State errorMessage: string = ''
+  @State systemStatus: FocusSystemStatus = FocusSystemStatusFactory.idle()
   private readonly viewModel: FocusViewModel = new FocusViewModel()
   private timerId: number = -1
   private tickBusy: boolean = false
@@ -53,6 +62,7 @@ export struct FocusPage {
         this.selectedTaskId = data.runtime.snapshot.taskId
       }
       await this.applyRuntime(data.runtime, true)
+      this.systemStatus = this.viewModel.systemStatus()
       this.errorMessage = ''
     } catch (error) {
       this.errorMessage = this.readableError(error)
@@ -77,6 +87,8 @@ export struct FocusPage {
   }
 
   private async start(): Promise<void> {
+    const context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
+    this.systemStatus = await this.viewModel.requestNotificationPermission(context)
     await this.runAction(async () => this.viewModel.start(this.selectedTask()))
   }
 
@@ -108,6 +120,7 @@ export struct FocusPage {
     try {
       await this.viewModel.dismissTerminal()
       this.runtime = { config: this.runtime.config, snapshot: null, reading: null }
+      this.systemStatus = this.viewModel.systemStatus()
       this.errorMessage = ''
     } catch (error) {
       this.errorMessage = this.readableError(error)
@@ -133,6 +146,7 @@ export struct FocusPage {
 
   private async applyRuntime(runtime: TimerRuntimeState, allowAutomaticStart: boolean): Promise<void> {
     this.runtime = runtime
+    this.systemStatus = this.viewModel.systemStatus()
     if (!allowAutomaticStart || runtime.snapshot === null || this.autoTransitioning ||
       !FocusPresentation.shouldAutoStart(runtime.snapshot.state, runtime.snapshot.terminalResult,
         runtime.snapshot.phase, runtime.config)) {
@@ -141,6 +155,7 @@ export struct FocusPage {
     this.autoTransitioning = true
     try {
       this.runtime = await this.viewModel.startNextPhase()
+      this.systemStatus = this.viewModel.systemStatus()
     } finally {
       this.autoTransitioning = false
     }
@@ -222,12 +237,14 @@ export struct FocusPage {
       Column({ space: AppSpacing.LG }) {
         Column({ space: AppSpacing.XS }) {
           Text($r('app.string.focus_title'))
-            .fontSize(AppTypography.TITLE)
+            .fontSize(this.isCompact ? 20 : AppTypography.TITLE)
             .fontWeight(FontWeight.Bold)
             .fontColor($r('app.color.text_primary'))
-          Text($r('app.string.focus_subtitle'))
-            .fontSize(AppTypography.BODY)
-            .fontColor($r('app.color.text_secondary'))
+          if (!this.isCompact) {
+            Text($r('app.string.focus_subtitle'))
+              .fontSize(AppTypography.BODY)
+              .fontColor($r('app.color.text_secondary'))
+          }
         }
         .width('100%')
         .alignItems(HorizontalAlign.Start)
@@ -271,14 +288,14 @@ export struct FocusPage {
           } else {
             Stack({ alignContent: Alignment.Center }) {
               Progress({ value: this.progressValue(), total: 100, type: ProgressType.Ring })
-                .width(this.isWide ? 310 : 250)
-                .height(this.isWide ? 310 : 250)
+                .width(this.isCompact ? 172 : (this.isWide ? 310 : 250))
+                .height(this.isCompact ? 172 : (this.isWide ? 310 : 250))
                 .color(this.accentColor())
                 .backgroundColor($r('app.color.surface_emphasis'))
-                .style({ strokeWidth: this.isWide ? 16 : 13, enableSmoothEffect: true })
+                .style({ strokeWidth: this.isCompact ? 10 : (this.isWide ? 16 : 13), enableSmoothEffect: true })
               Column({ space: AppSpacing.XS }) {
                 Text(this.timeText())
-                  .fontSize(this.isWide ? 76 : AppTypography.DISPLAY)
+                  .fontSize(this.isCompact ? 40 : (this.isWide ? 76 : AppTypography.DISPLAY))
                   .fontWeight(FontWeight.Bold)
                   .fontColor($r('app.color.text_primary'))
                   .maxFontScale(1.5)
@@ -301,20 +318,22 @@ export struct FocusPage {
           this.ActionArea()
         }
         .width('100%')
-        .constraintSize({ minHeight: this.isWide ? 520 : 460 })
+        .constraintSize({ minHeight: this.isCompact ? 330 : (this.isWide ? 520 : 460) })
         .justifyContent(FlexAlign.Center)
-        .padding(this.isWide ? AppSpacing.XXL : AppSpacing.XL)
+        .padding(this.isCompact ? AppSpacing.MD : (this.isWide ? AppSpacing.XXL : AppSpacing.XL))
         .backgroundColor($r('app.color.surface_primary'))
         .borderRadius(AppRadius.LG)
         .border({ width: 1, color: $r('app.color.border_subtle') })
 
-        if (this.runtime.snapshot === null && !this.loading) {
+        this.SystemCapabilityStatus()
+
+        if (this.runtime.snapshot === null && !this.loading && !this.isCompact) {
           this.TaskPicker()
         }
       }
       .width('100%')
       .constraintSize({ maxWidth: AppBreakpoint.CONTENT_MAX })
-      .padding(this.isWide ? AppSpacing.XXL : AppSpacing.LG)
+      .padding(this.isCompact ? AppSpacing.SM : (this.isWide ? AppSpacing.XXL : AppSpacing.LG))
     }
     .width('100%')
     .height('100%')
@@ -345,7 +364,7 @@ export struct FocusPage {
           .backgroundColor($r('app.color.surface_secondary')).borderRadius(AppRadius.MD)
           .enabled(!this.actionBusy).onClick(() => this.confirmFinishEarly())
       }
-      .width(this.isWide ? 520 : '100%')
+      .width(this.isWide && !this.isCompact ? 520 : '100%')
       Button('放弃本阶段')
         .fontSize(AppTypography.CAPTION).fontColor($r('app.color.danger'))
         .backgroundColor(Color.Transparent).enabled(!this.actionBusy)
@@ -362,7 +381,7 @@ export struct FocusPage {
           .backgroundColor($r('app.color.surface_secondary')).borderRadius(AppRadius.MD)
           .enabled(!this.actionBusy).onClick(() => this.confirmFinishEarly())
       }
-      .width(this.isWide ? 520 : '100%')
+      .width(this.isWide && !this.isCompact ? 520 : '100%')
       Button('放弃本阶段')
         .fontSize(AppTypography.CAPTION).fontColor($r('app.color.danger'))
         .backgroundColor(Color.Transparent).enabled(!this.actionBusy)
@@ -379,7 +398,7 @@ export struct FocusPage {
           .backgroundColor($r('app.color.surface_secondary')).borderRadius(AppRadius.MD)
           .enabled(!this.actionBusy).onClick(() => this.dismissTerminal())
       }
-      .width(this.isWide ? 520 : '100%')
+      .width(this.isWide && !this.isCompact ? 520 : '100%')
     } else {
       Button('返回准备状态')
         .width(this.isWide ? 280 : '100%').height(50)
@@ -431,6 +450,30 @@ export struct FocusPage {
     .padding(AppSpacing.LG)
     .backgroundColor($r('app.color.surface_primary'))
     .borderRadius(AppRadius.LG)
+    .border({ width: 1, color: $r('app.color.border_subtle') })
+  }
+
+  @Builder
+  private SystemCapabilityStatus() {
+    Row({ space: AppSpacing.SM }) {
+      Text(this.systemStatus.reminder === CapabilityState.READY &&
+        this.systemStatus.liveView === CapabilityState.READY ? '✓' : 'i')
+        .width(28).height(28).textAlign(TextAlign.Center)
+        .fontColor($r('app.color.brand_primary'))
+        .backgroundColor($r('app.color.brand_container'))
+        .borderRadius(AppRadius.PILL)
+      Text(FocusSystemPolicy.summary(this.systemStatus))
+        .layoutWeight(1).fontSize(AppTypography.CAPTION)
+        .fontColor($r('app.color.text_secondary'))
+      if (this.systemStatus.notification !== CapabilityState.READY &&
+        this.runtime.snapshot === null) {
+        Text('开始时询问')
+          .fontSize(AppTypography.CAPTION).fontColor($r('app.color.brand_primary'))
+      }
+    }
+    .width('100%').padding(AppSpacing.MD)
+    .backgroundColor($r('app.color.surface_primary'))
+    .borderRadius(AppRadius.MD)
     .border({ width: 1, color: $r('app.color.border_subtle') })
   }
 }

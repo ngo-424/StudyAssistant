@@ -20,6 +20,11 @@
         "label": "$string:EntryAbility_label",
         "startWindowIcon": "$media:startIcon",
         "startWindowBackground": "$color:start_window_background",
+        "supportWindowMode": [
+          "fullscreen",
+          "split",
+          "floating"
+        ],
         "exported": true,
         "skills": [
           {
@@ -31,6 +36,11 @@
             ]
           }
         ]
+      }
+    ],
+    "requestPermissions": [
+      {
+        "name": "ohos.permission.PUBLISH_AGENT_REMINDER"
       }
     ],
     "extensionAbilities": [
