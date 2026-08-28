@@ -3,6 +3,7 @@ import foundationTest from './Foundation.test'
 import focusTimerEngineTest from './FocusTimerEngine.test'
 import focusTimerCoordinatorTest from './FocusTimerCoordinator.test'
 import focusPresentationTest from './FocusPresentation.test'
+import focusSystemPolicyTest from './FocusSystemPolicy.test'
 import localUnitTest from './LocalUnit.test'
 import taskManagementTest from './TaskManagement.test'
 
@@ -12,6 +13,7 @@ export default function testsuite() {
   focusTimerEngineTest()
   focusTimerCoordinatorTest()
   focusPresentationTest()
+  focusSystemPolicyTest()
   localUnitTest()
   taskManagementTest()
 }

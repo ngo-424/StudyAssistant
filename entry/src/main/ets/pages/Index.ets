@@ -1,5 +1,6 @@
 import { AppTab } from '../app/AppTab'
 import { AppBreakpoint } from '../core/design/DesignTokens'
+import { WindowLayoutPolicy } from '../core/design/WindowLayoutPolicy'
 import { FocusPage } from '../features/focus/presentation/FocusPage'
 import { InsightsPage } from '../features/insights/presentation/InsightsPage'
 import { SettingsPage } from '../features/settings/presentation/SettingsPage'
@@ -11,11 +12,12 @@ import { AppNavigation } from '../shared/components/AppNavigation'
 struct Index {
   @State selectedTab: AppTab = AppTab.FOCUS
   @State isWide: boolean = false
+  @State isCompactWindow: boolean = false
 
   @Builder
   private PageContent() {
-    if (this.selectedTab === AppTab.FOCUS) {
-      FocusPage({ isWide: this.isWide })
+    if (this.isCompactWindow || this.selectedTab === AppTab.FOCUS) {
+      FocusPage({ isWide: this.isWide, isCompact: this.isCompactWindow })
     } else if (this.selectedTab === AppTab.INSIGHTS) {
       InsightsPage({ isWide: this.isWide })
     } else if (this.selectedTab === AppTab.TASKS) {
@@ -31,7 +33,7 @@ struct Index {
 
   build() {
     Row() {
-      if (this.isWide) {
+      if (this.isWide && !this.isCompactWindow) {
         AppNavigation({
           selectedTab: this.selectedTab,
           isWide: true,
@@ -42,7 +44,7 @@ struct Index {
       Column() {
         this.PageContent()
 
-        if (!this.isWide) {
+        if (!this.isWide && !this.isCompactWindow) {
           AppNavigation({
             selectedTab: this.selectedTab,
             isWide: false,
@@ -57,7 +59,10 @@ struct Index {
     .height('100%')
     .backgroundColor($r('app.color.app_background'))
     .onAreaChange((_oldArea: Area, newArea: Area) => {
-      this.isWide = Number(newArea.width) >= AppBreakpoint.TABLET
+      const width: number = Number(newArea.width)
+      const height: number = Number(newArea.height)
+      this.isWide = width >= AppBreakpoint.TABLET
+      this.isCompactWindow = WindowLayoutPolicy.isCompact(width, height)
     })
   }
 }
