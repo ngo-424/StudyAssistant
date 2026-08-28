@@ -1,6 +1,7 @@
 import { describe, expect, it } from '@ohos/hypium'
 import {
   ActiveTimerSnapshot,
+  FocusResult,
   FocusSession,
   TimerConfig,
   TimerRunState
@@ -90,13 +91,53 @@ export default function focusTimerCoordinatorTest(): void {
       const coordinator: FocusTimerCoordinator = new FocusTimerCoordinator(
         timerState, sessions, 'guest', () => 1000, () => 'stable-id')
       const custom: TimerConfig = {
-        focusMinutes: 45, shortBreakMinutes: 8, longBreakMinutes: 20, longBreakEvery: 3
+        focusMinutes: 45,
+        shortBreakMinutes: 8,
+        longBreakMinutes: 20,
+        longBreakEvery: 3,
+        autoStartBreaks: true,
+        autoStartFocus: false
       }
       await coordinator.saveConfig(custom)
       const started: TimerRuntimeState = await coordinator.start('task-1', 'category-1')
       expect(started.snapshot?.plannedSeconds).assertEqual(2700)
       expect(started.snapshot?.taskId).assertEqual('task-1')
       expect(started.snapshot?.categoryId).assertEqual('category-1')
+    })
+
+    it('supportsAContinuousQuickActionFlow', 0, async () => {
+      const timerState: MemoryTimerStateRepository = new MemoryTimerStateRepository()
+      const sessions: MemoryFocusSessionRepository = new MemoryFocusSessionRepository()
+      let now: number = 1000
+      let idSequence: number = 0
+      const coordinator: FocusTimerCoordinator = new FocusTimerCoordinator(
+        timerState, sessions, 'guest', () => now, () => {
+          idSequence += 1
+          return `flow-id-${idSequence}`
+        })
+
+      await coordinator.start(null, null)
+      now = 61000
+      const paused: TimerRuntimeState = await coordinator.pause()
+      expect(paused.snapshot?.state).assertEqual(TimerRunState.PAUSED)
+      expect(paused.reading?.remainingSeconds).assertEqual(1440)
+
+      now = 3661000
+      const resumed: TimerRuntimeState = await coordinator.resume()
+      expect(resumed.snapshot?.state).assertEqual(TimerRunState.RUNNING)
+      expect(resumed.reading?.remainingSeconds).assertEqual(1440)
+
+      now = 3671000
+      const ended: TimerRuntimeState = await coordinator.finishEarly()
+      expect(ended.snapshot?.terminalResult).assertEqual(FocusResult.INTERRUPTED)
+      expect(sessions.sessions.length).assertEqual(1)
+
+      const rest: TimerRuntimeState = await coordinator.startNextPhase()
+      expect(rest.snapshot?.state).assertEqual(TimerRunState.RUNNING)
+      await coordinator.abandon()
+      expect(sessions.sessions.length).assertEqual(2)
+      await coordinator.dismissTerminal()
+      expect(timerState.snapshot).assertEqual(null)
     })
   })
 }

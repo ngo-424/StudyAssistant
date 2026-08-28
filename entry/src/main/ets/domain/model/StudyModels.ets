@@ -35,6 +35,8 @@ export interface TimerConfig {
   shortBreakMinutes: number
   longBreakMinutes: number
   longBreakEvery: number
+  autoStartBreaks: boolean
+  autoStartFocus: boolean
 }
 
 export interface ActiveTimerSnapshot {

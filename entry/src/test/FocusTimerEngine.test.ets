@@ -12,7 +12,14 @@ import { TimerConfigRules } from '../main/ets/features/focus/domain/TimerConfigR
 import { TimerStartContext, TimerTransition } from '../main/ets/features/focus/domain/TimerModels'
 
 function testConfig(): TimerConfig {
-  return { focusMinutes: 25, shortBreakMinutes: 5, longBreakMinutes: 15, longBreakEvery: 4 }
+  return {
+    focusMinutes: 25,
+    shortBreakMinutes: 5,
+    longBreakMinutes: 15,
+    longBreakEvery: 4,
+    autoStartBreaks: false,
+    autoStartFocus: false
+  }
 }
 
 function testContext(): TimerStartContext {
@@ -31,6 +38,8 @@ export default function focusTimerEngineTest(): void {
       expect(config.shortBreakMinutes).assertEqual(5)
       expect(config.longBreakMinutes).assertEqual(15)
       expect(config.longBreakEvery).assertEqual(4)
+      expect(config.autoStartBreaks).assertFalse()
+      expect(config.autoStartFocus).assertFalse()
     })
 
     it('derivesRemainingTimeFromDeadline', 0, () => {
@@ -118,6 +127,24 @@ export default function focusTimerEngineTest(): void {
       expect(restored?.phaseSessionId).assertEqual('session-1')
       expect(TimerStateCodec.decodeSnapshot('{"state":"running"}')).assertEqual(null)
       expect(TimerStateCodec.decodeConfig('{"focusMinutes":0}')).assertEqual(null)
+    })
+
+    it('upgradesStoredConfigurationWithSafeAutomationDefaults', 0, () => {
+      const restored: TimerConfig | null = TimerStateCodec.decodeConfig(
+        '{"focusMinutes":40,"shortBreakMinutes":8,"longBreakMinutes":18,"longBreakEvery":3}')
+      expect(restored?.focusMinutes).assertEqual(40)
+      expect(restored?.autoStartBreaks).assertFalse()
+      expect(restored?.autoStartFocus).assertFalse()
+    })
+
+    it('upgradesStoredActiveTimerWithSafeAutomationDefaults', 0, () => {
+      const initial: ActiveTimerSnapshot = start(1000).snapshot
+      const legacyValue: string = TimerStateCodec.encodeSnapshot(initial)
+        .replace(',"autoStartBreaks":false,"autoStartFocus":false', '')
+      const restored: ActiveTimerSnapshot | null = TimerStateCodec.decodeSnapshot(legacyValue)
+      expect(restored?.phaseSessionId).assertEqual('session-1')
+      expect(restored?.config.autoStartBreaks).assertFalse()
+      expect(restored?.config.autoStartFocus).assertFalse()
     })
   })
 }

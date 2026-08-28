@@ -7,7 +7,9 @@ export class TimerConfigRules {
       focusMinutes: 25,
       shortBreakMinutes: 5,
       longBreakMinutes: 15,
-      longBreakEvery: 4
+      longBreakEvery: 4,
+      autoStartBreaks: false,
+      autoStartFocus: false
     }
   }
 
@@ -24,11 +26,16 @@ export class TimerConfigRules {
     if (!TimerConfigRules.integerBetween(config.longBreakEvery, 2, 12)) {
       throw new AppError(AppErrorCode.VALIDATION, 'LONG_BREAK_ROUNDS_INVALID')
     }
+    if (typeof config.autoStartBreaks !== 'boolean' || typeof config.autoStartFocus !== 'boolean') {
+      throw new AppError(AppErrorCode.VALIDATION, 'TIMER_AUTOMATION_INVALID')
+    }
     return {
       focusMinutes: config.focusMinutes,
       shortBreakMinutes: config.shortBreakMinutes,
       longBreakMinutes: config.longBreakMinutes,
-      longBreakEvery: config.longBreakEvery
+      longBreakEvery: config.longBreakEvery,
+      autoStartBreaks: config.autoStartBreaks,
+      autoStartFocus: config.autoStartFocus
     }
   }
 

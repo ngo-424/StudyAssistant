@@ -13,7 +13,8 @@ export class TimerStateCodec {
 
   static decodeConfig(value: string): TimerConfig | null {
     try {
-      const config: TimerConfig = JSON.parse(value) as TimerConfig
+      const parsed: TimerConfig = JSON.parse(value) as TimerConfig
+      const config: TimerConfig = TimerStateCodec.normalizeConfig(parsed)
       return TimerStateCodec.isConfig(config) ? config : null
     } catch (error) {
       return null
@@ -27,6 +28,7 @@ export class TimerStateCodec {
   static decodeSnapshot(value: string): ActiveTimerSnapshot | null {
     try {
       const snapshot: ActiveTimerSnapshot = JSON.parse(value) as ActiveTimerSnapshot
+      snapshot.config = TimerStateCodec.normalizeConfig(snapshot.config)
       if (!TimerStateCodec.isSnapshot(snapshot)) {
         return null
       }
@@ -41,7 +43,8 @@ export class TimerStateCodec {
       TimerStateCodec.validInteger(config.focusMinutes, 1, 480) &&
       TimerStateCodec.validInteger(config.shortBreakMinutes, 1, 120) &&
       TimerStateCodec.validInteger(config.longBreakMinutes, 1, 180) &&
-      TimerStateCodec.validInteger(config.longBreakEvery, 2, 12)
+      TimerStateCodec.validInteger(config.longBreakEvery, 2, 12) &&
+      typeof config.autoStartBreaks === 'boolean' && typeof config.autoStartFocus === 'boolean'
   }
 
   private static isSnapshot(snapshot: ActiveTimerSnapshot): boolean {
@@ -71,5 +74,16 @@ export class TimerStateCodec {
 
   private static validInteger(value: number, minimum: number, maximum: number): boolean {
     return Number.isFinite(value) && Math.round(value) === value && value >= minimum && value <= maximum
+  }
+
+  private static normalizeConfig(config: TimerConfig): TimerConfig {
+    return {
+      focusMinutes: config.focusMinutes,
+      shortBreakMinutes: config.shortBreakMinutes,
+      longBreakMinutes: config.longBreakMinutes,
+      longBreakEvery: config.longBreakEvery,
+      autoStartBreaks: config.autoStartBreaks === true,
+      autoStartFocus: config.autoStartFocus === true
+    }
   }
 }
