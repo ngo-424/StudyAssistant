@@ -31,6 +31,7 @@ export interface FocusSessionRepository {
 export interface RewardRepository {
   saveEvent(event: RewardEvent): Promise<void>
   saveAchievement(progress: AchievementProgress): Promise<void>
+  findEvents(profileId: string): Promise<RewardEvent[]>
 }
 
 export interface SettingsRepository {

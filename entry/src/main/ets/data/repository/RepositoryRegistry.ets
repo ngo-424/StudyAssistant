@@ -3,12 +3,14 @@ import { AppError, AppErrorCode } from '../../core/error/AppError'
 import {
   CategoryRepository,
   FocusSessionRepository,
+  RewardRepository,
   SettingsRepository,
   TaskRepository,
   TimerStateRepository
 } from '../../domain/repository/StudyRepositories'
 import { LocalCategoryRepository } from './LocalCategoryRepository'
 import { LocalFocusSessionRepository } from './LocalFocusSessionRepository'
+import { LocalRewardRepository } from './LocalRewardRepository'
 import { LocalSettingsRepository } from './LocalSettingsRepository'
 import { LocalTaskRepository } from './LocalTaskRepository'
 import { LocalTimerStateRepository } from './LocalTimerStateRepository'
@@ -17,6 +19,7 @@ export class RepositoryRegistry {
   private static taskRepository: TaskRepository | null = null
   private static categoryRepository: CategoryRepository | null = null
   private static focusSessionRepository: FocusSessionRepository | null = null
+  private static rewardRepository: RewardRepository | null = null
   private static settingsRepository: SettingsRepository | null = null
   private static timerStateRepository: TimerStateRepository | null = null
 
@@ -24,6 +27,7 @@ export class RepositoryRegistry {
     RepositoryRegistry.taskRepository = new LocalTaskRepository(store)
     RepositoryRegistry.categoryRepository = new LocalCategoryRepository(store)
     RepositoryRegistry.focusSessionRepository = new LocalFocusSessionRepository(store)
+    RepositoryRegistry.rewardRepository = new LocalRewardRepository(store)
     RepositoryRegistry.settingsRepository = new LocalSettingsRepository(store)
     RepositoryRegistry.timerStateRepository = new LocalTimerStateRepository(RepositoryRegistry.settingsRepository)
   }
@@ -47,6 +51,13 @@ export class RepositoryRegistry {
       throw new AppError(AppErrorCode.INITIALIZATION, 'Focus session repository has not been initialized')
     }
     return RepositoryRegistry.focusSessionRepository
+  }
+
+  static rewards(): RewardRepository {
+    if (RepositoryRegistry.rewardRepository === null) {
+      throw new AppError(AppErrorCode.INITIALIZATION, 'Reward repository has not been initialized')
+    }
+    return RepositoryRegistry.rewardRepository
   }
 
   static settings(): SettingsRepository {
