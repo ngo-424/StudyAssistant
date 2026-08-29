@@ -14,6 +14,8 @@ import { LocalRewardRepository } from './LocalRewardRepository'
 import { LocalSettingsRepository } from './LocalSettingsRepository'
 import { LocalTaskRepository } from './LocalTaskRepository'
 import { LocalTimerStateRepository } from './LocalTimerStateRepository'
+import { AccountSessionRepository } from '../../domain/repository/AccountSessionRepository'
+import { LocalAccountSessionRepository } from './LocalAccountSessionRepository'
 
 export class RepositoryRegistry {
   private static taskRepository: TaskRepository | null = null
@@ -22,6 +24,7 @@ export class RepositoryRegistry {
   private static rewardRepository: RewardRepository | null = null
   private static settingsRepository: SettingsRepository | null = null
   private static timerStateRepository: TimerStateRepository | null = null
+  private static accountSessionRepository: AccountSessionRepository | null = null
 
   static initialize(store: relationalStore.RdbStore): void {
     RepositoryRegistry.taskRepository = new LocalTaskRepository(store)
@@ -30,6 +33,7 @@ export class RepositoryRegistry {
     RepositoryRegistry.rewardRepository = new LocalRewardRepository(store)
     RepositoryRegistry.settingsRepository = new LocalSettingsRepository(store)
     RepositoryRegistry.timerStateRepository = new LocalTimerStateRepository(RepositoryRegistry.settingsRepository)
+    RepositoryRegistry.accountSessionRepository = new LocalAccountSessionRepository(store)
   }
 
   static tasks(): TaskRepository {
@@ -72,5 +76,12 @@ export class RepositoryRegistry {
       throw new AppError(AppErrorCode.INITIALIZATION, 'Timer state repository has not been initialized')
     }
     return RepositoryRegistry.timerStateRepository
+  }
+
+  static accountSession(): AccountSessionRepository {
+    if (RepositoryRegistry.accountSessionRepository === null) {
+      throw new AppError(AppErrorCode.INITIALIZATION, 'Account session repository has not been initialized')
+    }
+    return RepositoryRegistry.accountSessionRepository
   }
 }

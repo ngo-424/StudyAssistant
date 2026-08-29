@@ -1,4 +1,8 @@
 /node_modules
+/server/node_modules
+/server/dist
+/server/coverage
+/server/.env
 /oh_modules
 /local.properties
 /.idea
