@@ -3,6 +3,7 @@ import { AppBreakpoint, AppRadius, AppSpacing, AppTypography } from '../../../co
 import { TimerConfig } from '../../../domain/model/StudyModels'
 import { TimerConfigRules } from '../../focus/domain/TimerConfigRules'
 import { FocusSettingsViewModel } from './FocusSettingsViewModel'
+import { AccountPanel } from '../../auth/presentation/AccountPanel'
 
 @Component
 struct SettingRow {
@@ -235,7 +236,7 @@ export struct SettingsPage {
         .border({ width: 1, color: $r('app.color.border_subtle') })
 
         Column({ space: AppSpacing.MD }) {
-          SettingRow({ icon: '○', title: $r('app.string.guest_mode'), description: $r('app.string.guest_mode_desc') })
+          AccountPanel({ isWide: this.isWide })
           SettingRow({ icon: '◐', title: $r('app.string.appearance'), description: $r('app.string.appearance_desc') })
         }
         .width('100%')

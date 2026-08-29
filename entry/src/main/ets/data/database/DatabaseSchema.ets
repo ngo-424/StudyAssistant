@@ -1,5 +1,5 @@
 export const DATABASE_NAME: string = 'study_assistant.db'
-export const DATABASE_VERSION: number = 2
+export const DATABASE_VERSION: number = 3
 export const GUEST_PROFILE_ID: string = 'guest'
 
 export class DatabaseTable {
@@ -11,6 +11,7 @@ export class DatabaseTable {
   static readonly SETTINGS: string = 'app_settings'
   static readonly SYNC_METADATA: string = 'sync_metadata'
   static readonly MIGRATION_HISTORY: string = 'migration_history'
+  static readonly ACCOUNT_SESSION: string = 'account_session'
 }
 
 export const DATABASE_V1_STATEMENTS: string[] = [
@@ -116,4 +117,18 @@ export const DATABASE_V1_STATEMENTS: string[] = [
 
 export const DATABASE_V2_STATEMENTS: string[] = [
   'CREATE UNIQUE INDEX IF NOT EXISTS idx_rewards_session_unique ON reward_events(session_id)'
+]
+
+export const DATABASE_V3_STATEMENTS: string[] = [
+  `CREATE TABLE IF NOT EXISTS account_session (
+    session_key TEXT PRIMARY KEY NOT NULL,
+    account_id TEXT NOT NULL,
+    email TEXT NOT NULL,
+    access_token TEXT NOT NULL,
+    refresh_token TEXT NOT NULL,
+    access_expires_at INTEGER NOT NULL,
+    refresh_expires_at INTEGER NOT NULL,
+    device_id TEXT NOT NULL,
+    updated_at INTEGER NOT NULL
+  )`
 ]

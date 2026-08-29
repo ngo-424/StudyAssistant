@@ -42,7 +42,11 @@ struct Index {
       }
 
       Column() {
-        this.PageContent()
+        Column() {
+          this.PageContent()
+        }
+        .width('100%')
+        .layoutWeight(1)
 
         if (!this.isWide && !this.isCompactWindow) {
           AppNavigation({

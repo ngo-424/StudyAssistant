@@ -8,6 +8,7 @@ import insightsAggregatorTest from './InsightsAggregator.test'
 import localUnitTest from './LocalUnit.test'
 import rewardRulesTest from './RewardRules.test'
 import taskManagementTest from './TaskManagement.test'
+import authRulesTest from './AuthRules.test'
 
 export default function testsuite() {
   dataFoundationTest()
@@ -20,4 +21,5 @@ export default function testsuite() {
   localUnitTest()
   rewardRulesTest()
   taskManagementTest()
+  authRulesTest()
 }
