@@ -32,6 +32,8 @@ export interface RewardRepository {
   saveEvent(event: RewardEvent): Promise<void>
   saveAchievement(progress: AchievementProgress): Promise<void>
   findEvents(profileId: string): Promise<RewardEvent[]>
+  findEvent(sessionId: string): Promise<RewardEvent | null>
+  findAchievements(profileId: string): Promise<AchievementProgress[]>
 }
 
 export interface SettingsRepository {

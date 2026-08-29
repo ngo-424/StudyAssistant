@@ -15,15 +15,10 @@ export class LocalRewardRepository implements RewardRepository {
   async saveEvent(event: RewardEvent): Promise<void> {
     try {
       await this.store.executeSql(
-        `INSERT INTO ${DatabaseTable.REWARD_EVENTS}
+        `INSERT OR IGNORE INTO ${DatabaseTable.REWARD_EVENTS}
          (id, profile_id, session_id, rule_version, base_points, multiplier,
           awarded_points, awarded_at, sync_state)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-         ON CONFLICT(id) DO UPDATE SET
-          profile_id=excluded.profile_id, session_id=excluded.session_id,
-          rule_version=excluded.rule_version, base_points=excluded.base_points,
-          multiplier=excluded.multiplier, awarded_points=excluded.awarded_points,
-          awarded_at=excluded.awarded_at, sync_state=excluded.sync_state`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [event.id, event.profileId, event.sessionId, event.ruleVersion, event.basePoints,
           event.multiplier, event.awardedPoints, event.awardedAt, event.syncState])
     } catch (error) {
@@ -38,7 +33,7 @@ export class LocalRewardRepository implements RewardRepository {
          (id, profile_id, achievement_key, current_value, target_value,
           unlocked_at, updated_at, sync_state)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-         ON CONFLICT(id) DO UPDATE SET
+         ON CONFLICT(profile_id, achievement_key) DO UPDATE SET
           current_value=excluded.current_value, target_value=excluded.target_value,
           unlocked_at=excluded.unlocked_at, updated_at=excluded.updated_at,
           sync_state=excluded.sync_state`,
@@ -81,6 +76,78 @@ export class LocalRewardRepository implements RewardRepository {
         } catch (closeError) {
         }
       }
+    }
+  }
+
+  async findEvent(sessionId: string): Promise<RewardEvent | null> {
+    let resultSet: relationalStore.ResultSet | null = null
+    try {
+      resultSet = await this.store.querySql(
+        `SELECT id, profile_id, session_id, rule_version, base_points, multiplier,
+         awarded_points, awarded_at, sync_state
+         FROM ${DatabaseTable.REWARD_EVENTS}
+         WHERE session_id = ? LIMIT 1`, [sessionId])
+      if (!resultSet.goToNextRow()) {
+        return null
+      }
+      return this.mapEvent(resultSet)
+    } catch (error) {
+      throw new AppError(AppErrorCode.DATABASE, `Unable to find reward event: ${JSON.stringify(error)}`)
+    } finally {
+      this.close(resultSet)
+    }
+  }
+
+  async findAchievements(profileId: string): Promise<AchievementProgress[]> {
+    let resultSet: relationalStore.ResultSet | null = null
+    const achievements: AchievementProgress[] = []
+    try {
+      resultSet = await this.store.querySql(
+        `SELECT id, profile_id, achievement_key, current_value, target_value,
+         unlocked_at, updated_at, sync_state
+         FROM ${DatabaseTable.ACHIEVEMENTS}
+         WHERE profile_id = ? ORDER BY achievement_key ASC`, [profileId])
+      while (resultSet.goToNextRow()) {
+        achievements.push({
+          id: ResultSetReader.string(resultSet, 'id'),
+          profileId: ResultSetReader.string(resultSet, 'profile_id'),
+          achievementKey: ResultSetReader.string(resultSet, 'achievement_key'),
+          currentValue: ResultSetReader.number(resultSet, 'current_value'),
+          targetValue: ResultSetReader.number(resultSet, 'target_value'),
+          unlockedAt: ResultSetReader.nullableNumber(resultSet, 'unlocked_at'),
+          updatedAt: ResultSetReader.number(resultSet, 'updated_at'),
+          syncState: ResultSetReader.string(resultSet, 'sync_state') as SyncState
+        })
+      }
+      return achievements
+    } catch (error) {
+      throw new AppError(AppErrorCode.DATABASE, `Unable to list achievements: ${JSON.stringify(error)}`)
+    } finally {
+      this.close(resultSet)
+    }
+  }
+
+  private mapEvent(resultSet: relationalStore.ResultSet): RewardEvent {
+    return {
+      id: ResultSetReader.string(resultSet, 'id'),
+      profileId: ResultSetReader.string(resultSet, 'profile_id'),
+      sessionId: ResultSetReader.string(resultSet, 'session_id'),
+      ruleVersion: ResultSetReader.number(resultSet, 'rule_version'),
+      basePoints: ResultSetReader.number(resultSet, 'base_points'),
+      multiplier: ResultSetReader.number(resultSet, 'multiplier'),
+      awardedPoints: ResultSetReader.number(resultSet, 'awarded_points'),
+      awardedAt: ResultSetReader.number(resultSet, 'awarded_at'),
+      syncState: ResultSetReader.string(resultSet, 'sync_state') as SyncState
+    }
+  }
+
+  private close(resultSet: relationalStore.ResultSet | null): void {
+    if (resultSet === null) {
+      return
+    }
+    try {
+      resultSet.close()
+    } catch (error) {
     }
   }
 }

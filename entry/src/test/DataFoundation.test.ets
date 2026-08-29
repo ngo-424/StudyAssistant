@@ -1,17 +1,23 @@
 import { describe, expect, it } from '@ohos/hypium'
-import { DATABASE_V1_STATEMENTS, DATABASE_VERSION, GUEST_PROFILE_ID } from '../main/ets/data/database/DatabaseSchema'
+import {
+  DATABASE_V1_STATEMENTS,
+  DATABASE_V2_STATEMENTS,
+  DATABASE_VERSION,
+  GUEST_PROFILE_ID
+} from '../main/ets/data/database/DatabaseSchema'
 import { LegacyDataParser, LegacyTaskCandidate } from '../main/ets/data/migration/LegacyDataParser'
 import { TaskStatus } from '../main/ets/domain/model/StudyModels'
 
 export default function dataFoundationTest(): void {
   describe('dataFoundation', () => {
     it('definesVersionedSchema', 0, () => {
-      expect(DATABASE_VERSION).assertEqual(1)
+      expect(DATABASE_VERSION).assertEqual(2)
       const schema: string = DATABASE_V1_STATEMENTS.join(' ')
       expect(schema).assertContain('study_tasks')
       expect(schema).assertContain('focus_sessions')
       expect(schema).assertContain('reward_events')
       expect(schema).assertContain('migration_history')
+      expect(DATABASE_V2_STATEMENTS.join(' ')).assertContain('session_id')
     })
 
     it('parsesOnlyRecognizableLegacyTasks', 0, () => {

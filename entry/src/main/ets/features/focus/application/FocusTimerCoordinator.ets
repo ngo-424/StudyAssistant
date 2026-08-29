@@ -1,4 +1,5 @@
 import { AppError, AppErrorCode } from '../../../core/error/AppError'
+import { AppLogger } from '../../../core/logging/AppLogger'
 import {
   ActiveTimerSnapshot,
   FocusSession,
@@ -15,6 +16,7 @@ import {
   TimerTransition
 } from '../domain/TimerModels'
 import { TimerConfigRules } from '../domain/TimerConfigRules'
+import { RewardSettlementService } from '../../rewards/application/RewardSettlementService'
 
 const CHECKPOINT_INTERVAL_MS: number = 30000
 
@@ -24,14 +26,17 @@ export class FocusTimerCoordinator {
   private readonly profileId: string
   private readonly clock: () => number
   private readonly idFactory: () => string
+  private readonly rewards: RewardSettlementService | null
 
   constructor(timerState: TimerStateRepository, sessions: FocusSessionRepository,
-    profileId: string, clock: () => number, idFactory: () => string) {
+    profileId: string, clock: () => number, idFactory: () => string,
+    rewards: RewardSettlementService | null = null) {
     this.timerState = timerState
     this.sessions = sessions
     this.profileId = profileId
     this.clock = clock
     this.idFactory = idFactory
+    this.rewards = rewards
   }
 
   async restore(): Promise<TimerRuntimeState> {
@@ -43,6 +48,9 @@ export class FocusTimerCoordinator {
     const transition: TimerTransition = FocusTimerEngine.synchronize(saved, this.clock())
     if (transition.outcome !== null || transition.reading.clockAdjusted) {
       await this.persist(transition)
+    }
+    if (transition.outcome === null && transition.snapshot.state === TimerRunState.COMPLETED) {
+      await this.reconcileReward(transition.snapshot.phaseSessionId)
     }
     return { config: config, snapshot: transition.snapshot, reading: transition.reading }
   }
@@ -124,10 +132,37 @@ export class FocusTimerCoordinator {
   }
 
   private async persist(transition: TimerTransition): Promise<void> {
+    let session: FocusSession | null = null
     if (transition.outcome !== null) {
-      await this.sessions.save(await this.toSession(transition.outcome))
+      session = await this.toSession(transition.outcome)
+      await this.sessions.save(session)
     }
     await this.timerState.saveSnapshot(transition.snapshot)
+    if (session !== null) {
+      await this.settleReward(session)
+    }
+  }
+
+  private async reconcileReward(sessionId: string): Promise<void> {
+    if (this.rewards === null) {
+      return
+    }
+    const sessions: FocusSession[] = await this.sessions.findAll(this.profileId)
+    const session: FocusSession | undefined = sessions.find((item: FocusSession) => item.id === sessionId)
+    if (session !== undefined) {
+      await this.settleReward(session)
+    }
+  }
+
+  private async settleReward(session: FocusSession): Promise<void> {
+    if (this.rewards === null) {
+      return
+    }
+    try {
+      await this.rewards.settle(session)
+    } catch (error) {
+      AppLogger.warn('FocusTimerCoordinator', 'Reward settlement deferred for retry')
+    }
   }
 
   private async toSession(outcome: TimerPhaseOutcome): Promise<FocusSession> {

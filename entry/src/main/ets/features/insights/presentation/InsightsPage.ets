@@ -2,7 +2,9 @@ import { AppBreakpoint, AppRadius, AppSpacing, AppTypography } from '../../../co
 import { CategoryFocusSegment, CategoryFocusShare, HeatmapDay, InsightsDashboard, TrendPoint } from '../domain/InsightsModels'
 import { InsightsAggregator } from '../domain/InsightsAggregator'
 import { InsightsPresentation } from './InsightsPresentation'
-import { InsightsViewModel } from './InsightsViewModel'
+import { InsightsScreenData, InsightsViewModel } from './InsightsViewModel'
+import { AchievementDisplayItem } from '../../rewards/domain/RewardModels'
+import { RewardPresentation } from '../../rewards/presentation/RewardPresentation'
 
 @Component
 struct MetricCard {
@@ -45,6 +47,7 @@ export struct InsightsPage {
   @State loading: boolean = true
   @State errorMessage: string = ''
   @State dashboard: InsightsDashboard = InsightsAggregator.empty(Date.now())
+  @State achievements: AchievementDisplayItem[] = RewardPresentation.achievements([])
   private readonly viewModel: InsightsViewModel = new InsightsViewModel()
 
   aboutToAppear(): void {
@@ -54,7 +57,9 @@ export struct InsightsPage {
   private async load(): Promise<void> {
     this.loading = true
     try {
-      this.dashboard = await this.viewModel.load()
+      const data: InsightsScreenData = await this.viewModel.load()
+      this.dashboard = data.dashboard
+      this.achievements = data.achievements
       this.errorMessage = ''
     } catch (error) {
       this.errorMessage = '暂时无法读取本地专注记录，请稍后重试'
@@ -137,6 +142,7 @@ export struct InsightsPage {
             this.Heatmap()
             this.CategoryDistribution()
           }
+          this.Achievements()
         }
       }
       .width('100%')
@@ -283,6 +289,59 @@ export struct InsightsPage {
         }
         .width('100%')
       }, (item: CategoryFocusShare) => item.categoryId ?? 'uncategorized')
+    }
+    .width('100%').padding(AppSpacing.XL)
+    .backgroundColor($r('app.color.surface_primary')).borderRadius(AppRadius.LG)
+    .border({ width: 1, color: $r('app.color.border_subtle') })
+  }
+
+  @Builder
+  private Achievements() {
+    Column({ space: AppSpacing.LG }) {
+      Column({ space: AppSpacing.XS }) {
+        Text('基础成就')
+          .fontSize(18).fontWeight(FontWeight.Bold).fontColor($r('app.color.text_primary'))
+        Text('积分与成就仅用于记录专注进度，不支持兑换、交易或付费购买')
+          .fontSize(AppTypography.CAPTION).fontColor($r('app.color.text_secondary'))
+      }
+      .width('100%').alignItems(HorizontalAlign.Start)
+
+      ForEach(this.achievements, (item: AchievementDisplayItem) => {
+        Row({ space: AppSpacing.MD }) {
+          Text(item.unlockedAt === null ? '○' : '✓')
+            .width(34).height(34).textAlign(TextAlign.Center)
+            .fontSize(18).fontWeight(FontWeight.Bold)
+            .fontColor(item.unlockedAt === null ? $r('app.color.text_tertiary') : $r('app.color.success'))
+            .backgroundColor(item.unlockedAt === null ?
+              $r('app.color.surface_secondary') : $r('app.color.brand_container'))
+            .borderRadius(AppRadius.PILL)
+          Column({ space: AppSpacing.XS }) {
+            Row() {
+              Text(item.title)
+                .layoutWeight(1).fontSize(AppTypography.BODY).fontWeight(FontWeight.Bold)
+                .fontColor($r('app.color.text_primary'))
+              Text(RewardPresentation.progressText(item))
+                .fontSize(AppTypography.CAPTION)
+                .fontColor(item.unlockedAt === null ?
+                  $r('app.color.text_secondary') : $r('app.color.success'))
+            }
+            .width('100%')
+            Text(item.description)
+              .fontSize(AppTypography.CAPTION).fontColor($r('app.color.text_secondary'))
+            Stack({ alignContent: Alignment.Start }) {
+              Row().width('100%').height(6)
+                .backgroundColor($r('app.color.surface_emphasis')).borderRadius(AppRadius.PILL)
+              Row().width(`${RewardPresentation.progressPercent(item)}%`).height(6)
+                .backgroundColor(item.unlockedAt === null ?
+                  $r('app.color.brand_primary') : $r('app.color.success'))
+                .borderRadius(AppRadius.PILL)
+            }
+            .width('100%').height(6)
+          }
+          .layoutWeight(1).alignItems(HorizontalAlign.Start)
+        }
+        .width('100%')
+      }, (item: AchievementDisplayItem) => item.key)
     }
     .width('100%').padding(AppSpacing.XL)
     .backgroundColor($r('app.color.surface_primary')).borderRadius(AppRadius.LG)
