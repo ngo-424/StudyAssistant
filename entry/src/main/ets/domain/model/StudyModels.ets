@@ -109,6 +109,13 @@ export interface FocusSession {
   syncState: SyncState
 }
 
+export interface DailyStatistics {
+  dateKey: string
+  focusSeconds: number
+  completedRounds: number
+  awardedPoints: number
+}
+
 export interface RewardEvent {
   id: string
   profileId: string

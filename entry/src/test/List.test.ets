@@ -4,7 +4,9 @@ import focusTimerEngineTest from './FocusTimerEngine.test'
 import focusTimerCoordinatorTest from './FocusTimerCoordinator.test'
 import focusPresentationTest from './FocusPresentation.test'
 import focusSystemPolicyTest from './FocusSystemPolicy.test'
+import insightsAggregatorTest from './InsightsAggregator.test'
 import localUnitTest from './LocalUnit.test'
+import rewardRulesTest from './RewardRules.test'
 import taskManagementTest from './TaskManagement.test'
 
 export default function testsuite() {
@@ -14,6 +16,8 @@ export default function testsuite() {
   focusTimerCoordinatorTest()
   focusPresentationTest()
   focusSystemPolicyTest()
+  insightsAggregatorTest()
   localUnitTest()
+  rewardRulesTest()
   taskManagementTest()
 }

@@ -1,5 +1,5 @@
 export const DATABASE_NAME: string = 'study_assistant.db'
-export const DATABASE_VERSION: number = 1
+export const DATABASE_VERSION: number = 2
 export const GUEST_PROFILE_ID: string = 'guest'
 
 export class DatabaseTable {
@@ -112,4 +112,8 @@ export const DATABASE_V1_STATEMENTS: string[] = [
     ON study_tasks(profile_id, legacy_code) WHERE legacy_code IS NOT NULL`,
   'CREATE INDEX IF NOT EXISTS idx_sessions_profile_started ON focus_sessions(profile_id, started_at)',
   'CREATE INDEX IF NOT EXISTS idx_rewards_profile_awarded ON reward_events(profile_id, awarded_at)'
+]
+
+export const DATABASE_V2_STATEMENTS: string[] = [
+  'CREATE UNIQUE INDEX IF NOT EXISTS idx_rewards_session_unique ON reward_events(session_id)'
 ]
