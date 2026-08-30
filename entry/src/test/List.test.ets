@@ -9,6 +9,7 @@ import localUnitTest from './LocalUnit.test'
 import rewardRulesTest from './RewardRules.test'
 import taskManagementTest from './TaskManagement.test'
 import authRulesTest from './AuthRules.test'
+import syncProfileTest from './SyncProfile.test'
 
 export default function testsuite() {
   dataFoundationTest()
@@ -22,4 +23,5 @@ export default function testsuite() {
   rewardRulesTest()
   taskManagementTest()
   authRulesTest()
+  syncProfileTest()
 }

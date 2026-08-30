@@ -60,4 +60,32 @@ export class LocalSettingsRepository implements SettingsRepository {
       throw new AppError(AppErrorCode.DATABASE, `Unable to remove setting: ${JSON.stringify(error)}`)
     }
   }
+
+  async findAll(profileId: string): Promise<SettingEntry[]> {
+    let resultSet: relationalStore.ResultSet | null = null
+    const entries: SettingEntry[] = []
+    try {
+      resultSet = await this.store.querySql(
+        `SELECT profile_id, setting_key, setting_value, updated_at FROM ${DatabaseTable.SETTINGS}
+         WHERE profile_id = ? ORDER BY setting_key`, [profileId])
+      while (resultSet.goToNextRow()) {
+        entries.push({
+          profileId: ResultSetReader.string(resultSet, 'profile_id'),
+          key: ResultSetReader.string(resultSet, 'setting_key'),
+          value: ResultSetReader.string(resultSet, 'setting_value'),
+          updatedAt: ResultSetReader.number(resultSet, 'updated_at')
+        })
+      }
+      return entries
+    } catch (error) {
+      throw new AppError(AppErrorCode.DATABASE, `Unable to list settings: ${JSON.stringify(error)}`)
+    } finally {
+      if (resultSet !== null) {
+        try {
+          resultSet.close()
+        } catch (closeError) {
+        }
+      }
+    }
+  }
 }

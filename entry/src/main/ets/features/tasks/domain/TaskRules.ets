@@ -20,7 +20,7 @@ export class TaskRules {
       updatedAt: now,
       deletedAt: null,
       revision: 0,
-      syncState: SyncState.LOCAL_ONLY
+      syncState: TaskRules.syncState(profileId)
     }
   }
 
@@ -72,8 +72,12 @@ export class TaskRules {
       updatedAt: updatedAt,
       deletedAt: deletedAt,
       revision: revision,
-      syncState: task.syncState === SyncState.LOCAL_ONLY ? SyncState.LOCAL_ONLY : SyncState.PENDING
+      syncState: TaskRules.syncState(task.profileId)
     }
+  }
+
+  private static syncState(profileId: string): SyncState {
+    return profileId === 'guest' ? SyncState.LOCAL_ONLY : SyncState.PENDING
   }
 }
 
@@ -89,7 +93,7 @@ export class CategoryRules {
       updatedAt: now,
       deletedAt: null,
       revision: 0,
-      syncState: SyncState.LOCAL_ONLY
+      syncState: CategoryRules.syncState(profileId)
     }
   }
 
@@ -126,7 +130,11 @@ export class CategoryRules {
       updatedAt: updatedAt,
       deletedAt: deletedAt,
       revision: revision,
-      syncState: category.syncState === SyncState.LOCAL_ONLY ? SyncState.LOCAL_ONLY : SyncState.PENDING
+      syncState: CategoryRules.syncState(category.profileId)
     }
+  }
+
+  private static syncState(profileId: string): SyncState {
+    return profileId === 'guest' ? SyncState.LOCAL_ONLY : SyncState.PENDING
   }
 }

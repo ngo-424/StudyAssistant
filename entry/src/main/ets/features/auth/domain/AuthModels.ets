@@ -37,8 +37,16 @@ export interface AuthErrorPayload {
   message?: string
 }
 
+export interface LoginPreparation {
+  requiresGuestDecision: boolean
+  taskCount: number
+  focusCount: number
+  points: number
+}
+
 export enum AuthPanelStage {
   SUMMARY = 'summary',
   EMAIL = 'email',
-  CODE = 'code'
+  CODE = 'code',
+  GUEST_DECISION = 'guest_decision'
 }

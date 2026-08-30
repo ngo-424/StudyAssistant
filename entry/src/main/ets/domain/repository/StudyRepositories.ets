@@ -39,6 +39,7 @@ export interface RewardRepository {
 export interface SettingsRepository {
   save(entry: SettingEntry): Promise<void>
   find(profileId: string, key: string): Promise<SettingEntry | null>
+  findAll(profileId: string): Promise<SettingEntry[]>
   remove(profileId: string, key: string): Promise<void>
 }
 

@@ -1,6 +1,5 @@
 import { AppInitializer } from '../../../app/AppInitializer'
 import { common } from '@kit.AbilityKit'
-import { GUEST_PROFILE_ID } from '../../../data/database/DatabaseSchema'
 import { RepositoryRegistry } from '../../../data/repository/RepositoryRegistry'
 import { StudyTask, TaskCategory, TaskStatus, TimerConfig, TimerRunState } from '../../../domain/model/StudyModels'
 import { FocusTimerCoordinator } from '../application/FocusTimerCoordinator'
@@ -9,6 +8,7 @@ import { FocusSystemExperienceService } from '../application/FocusSystemExperien
 import { TimerRuntimeState } from '../domain/TimerModels'
 import { CategoryColor } from '../../tasks/domain/CategoryColor'
 import { FocusSystemDescriptor, FocusSystemStatus } from '../system/FocusSystemModels'
+import { ProfileContext } from '../../sync/application/ProfileContext'
 
 export interface FocusScreenData {
   runtime: TimerRuntimeState
@@ -21,13 +21,20 @@ export class FocusViewModel {
   private systemExperience: FocusSystemExperienceService | null = null
   private tasks: StudyTask[] = []
   private categories: TaskCategory[] = []
+  private profileId: string = ''
 
   async load(): Promise<FocusScreenData> {
     await AppInitializer.whenReady()
     const coordinator: FocusTimerCoordinator = await this.getCoordinator()
-    const tasks: StudyTask[] = (await RepositoryRegistry.tasks().findAll(GUEST_PROFILE_ID))
+    const profileId: string = ProfileContext.currentProfileId()
+    if (this.profileId !== profileId) {
+      this.profileId = profileId
+      this.coordinator = null
+      this.systemExperience = null
+    }
+    const tasks: StudyTask[] = (await RepositoryRegistry.tasks().findAll(profileId))
       .filter((task: StudyTask) => task.deletedAt === null && task.status === TaskStatus.TODO)
-    const categories: TaskCategory[] = (await RepositoryRegistry.categories().findAll(GUEST_PROFILE_ID))
+    const categories: TaskCategory[] = (await RepositoryRegistry.categories().findAll(profileId))
       .filter((category: TaskCategory) => category.deletedAt === null)
     this.tasks = tasks
     this.categories = categories
