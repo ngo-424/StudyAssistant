@@ -22,6 +22,20 @@ export class AuthService {
     return this.sessions.current()
   }
 
+  async sessionForRequest(): Promise<AccountSession> {
+    let session: AccountSession | null = await this.sessions.current()
+    if (session === null || AuthRules.refreshExpired(session, this.clock())) {
+      if (session !== null) {
+        await this.sessions.clear()
+      }
+      throw new AuthApiError(401, 'SESSION_EXPIRED')
+    }
+    if (AuthRules.accessNeedsRefresh(session, this.clock())) {
+      session = await this.rotate(session)
+    }
+    return session
+  }
+
   async requestCode(email: string): Promise<RequestCodeResult> {
     if (!AuthRules.validEmail(email)) {
       throw new AuthApiError(400, 'INVALID_EMAIL')

@@ -4,6 +4,7 @@ import {
   DATABASE_V1_STATEMENTS,
   DATABASE_V2_STATEMENTS,
   DATABASE_V3_STATEMENTS,
+  DATABASE_V4_STATEMENTS,
   DATABASE_VERSION
 } from './DatabaseSchema'
 
@@ -36,6 +37,11 @@ export class DatabaseMigrations {
       if (sourceVersion < 3) {
         for (let index: number = 0; index < DATABASE_V3_STATEMENTS.length; index++) {
           await transaction.execute(DATABASE_V3_STATEMENTS[index])
+        }
+      }
+      if (sourceVersion < 4) {
+        for (let index: number = 0; index < DATABASE_V4_STATEMENTS.length; index++) {
+          await transaction.execute(DATABASE_V4_STATEMENTS[index])
         }
       }
       await transaction.commit()

@@ -12,6 +12,7 @@
     "test": "jest --runInBand",
     "test:cov": "jest --coverage --runInBand",
     "test:e2e": "ts-node test/auth-live-e2e.ts",
+    "test:sync-e2e": "ts-node test/sync-live-e2e.ts",
     "lint": "eslint \"{src,test}/**/*.ts\""
   },
   "dependencies": {

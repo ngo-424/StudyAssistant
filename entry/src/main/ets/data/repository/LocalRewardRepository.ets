@@ -15,10 +15,11 @@ export class LocalRewardRepository implements RewardRepository {
   async saveEvent(event: RewardEvent): Promise<void> {
     try {
       await this.store.executeSql(
-        `INSERT OR IGNORE INTO ${DatabaseTable.REWARD_EVENTS}
+        `INSERT INTO ${DatabaseTable.REWARD_EVENTS}
          (id, profile_id, session_id, rule_version, base_points, multiplier,
           awarded_points, awarded_at, sync_state)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(id) DO UPDATE SET sync_state=excluded.sync_state`,
         [event.id, event.profileId, event.sessionId, event.ruleVersion, event.basePoints,
           event.multiplier, event.awardedPoints, event.awardedAt, event.syncState])
     } catch (error) {

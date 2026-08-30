@@ -1,5 +1,5 @@
 export const DATABASE_NAME: string = 'study_assistant.db'
-export const DATABASE_VERSION: number = 3
+export const DATABASE_VERSION: number = 4
 export const GUEST_PROFILE_ID: string = 'guest'
 
 export class DatabaseTable {
@@ -12,6 +12,8 @@ export class DatabaseTable {
   static readonly SYNC_METADATA: string = 'sync_metadata'
   static readonly MIGRATION_HISTORY: string = 'migration_history'
   static readonly ACCOUNT_SESSION: string = 'account_session'
+  static readonly SYNC_MUTATIONS: string = 'sync_mutations'
+  static readonly SYNC_CONFLICTS: string = 'sync_conflicts'
 }
 
 export const DATABASE_V1_STATEMENTS: string[] = [
@@ -131,4 +133,40 @@ export const DATABASE_V3_STATEMENTS: string[] = [
     device_id TEXT NOT NULL,
     updated_at INTEGER NOT NULL
   )`
+]
+
+export const DATABASE_V4_STATEMENTS: string[] = [
+  `CREATE TABLE IF NOT EXISTS sync_mutations (
+    mutation_id TEXT PRIMARY KEY NOT NULL,
+    profile_id TEXT NOT NULL,
+    entity_type TEXT NOT NULL,
+    entity_id TEXT NOT NULL,
+    base_revision INTEGER NOT NULL,
+    operation TEXT NOT NULL,
+    payload TEXT NOT NULL,
+    state TEXT NOT NULL,
+    attempt_count INTEGER NOT NULL DEFAULT 0,
+    last_error TEXT NOT NULL DEFAULT '',
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS sync_conflicts (
+    id TEXT PRIMARY KEY NOT NULL,
+    profile_id TEXT NOT NULL,
+    mutation_id TEXT,
+    entity_type TEXT NOT NULL,
+    entity_id TEXT NOT NULL,
+    local_payload TEXT NOT NULL,
+    server_payload TEXT NOT NULL,
+    server_revision INTEGER NOT NULL,
+    created_at INTEGER NOT NULL,
+    resolved_at INTEGER
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_sync_mutations_profile_state
+    ON sync_mutations(profile_id, state, created_at)`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_sync_mutations_entity_pending
+    ON sync_mutations(profile_id, entity_type, entity_id)
+    WHERE state IN ('pending', 'failed')`,
+  `CREATE INDEX IF NOT EXISTS idx_sync_conflicts_profile
+    ON sync_conflicts(profile_id, resolved_at, created_at)`
 ]

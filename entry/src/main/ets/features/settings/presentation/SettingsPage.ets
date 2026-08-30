@@ -4,6 +4,7 @@ import { TimerConfig } from '../../../domain/model/StudyModels'
 import { TimerConfigRules } from '../../focus/domain/TimerConfigRules'
 import { FocusSettingsViewModel } from './FocusSettingsViewModel'
 import { AccountPanel } from '../../auth/presentation/AccountPanel'
+import { SyncPanel } from '../../sync/presentation/SyncPanel'
 
 @Component
 struct SettingRow {
@@ -94,6 +95,7 @@ export struct SettingsPage {
   @State saving: boolean = false
   @State saved: boolean = false
   @State errorMessage: string = ''
+  @State profileVersion: number = 0
   private readonly viewModel: FocusSettingsViewModel = new FocusSettingsViewModel()
 
   aboutToAppear(): void {
@@ -236,7 +238,11 @@ export struct SettingsPage {
         .border({ width: 1, color: $r('app.color.border_subtle') })
 
         Column({ space: AppSpacing.MD }) {
-          AccountPanel({ isWide: this.isWide })
+          AccountPanel({
+            isWide: this.isWide,
+            onProfileChanged: () => this.profileVersion++
+          })
+          SyncPanel({ profileVersion: this.profileVersion })
           SettingRow({ icon: '◐', title: $r('app.string.appearance'), description: $r('app.string.appearance_desc') })
         }
         .width('100%')

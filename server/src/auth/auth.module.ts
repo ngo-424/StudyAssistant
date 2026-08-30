@@ -26,5 +26,6 @@ import { RedisRateLimiter } from './rate-limit/redis-rate-limiter';
     { provide: MAIL_ADAPTER, useClass: SmtpMailAdapter },
     { provide: RATE_LIMITER, useClass: RedisRateLimiter },
   ],
+  exports: [AccessTokenGuard, JwtModule, AUTH_CONFIG],
 })
 export class AuthModule {}

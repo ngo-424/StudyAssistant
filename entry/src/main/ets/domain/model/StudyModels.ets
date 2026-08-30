@@ -109,6 +109,25 @@ export interface FocusSession {
   syncState: SyncState
 }
 
+export enum SyncEntityType {
+  TASK = 'task',
+  CATEGORY = 'category',
+  FOCUS_SESSION = 'focus_session',
+  REWARD_EVENT = 'reward_event',
+  SETTING = 'setting'
+}
+
+export enum SyncOperation {
+  UPSERT = 'upsert',
+  DELETE = 'delete'
+}
+
+export enum SyncMutationState {
+  PENDING = 'pending',
+  FAILED = 'failed',
+  CONFLICT = 'conflict'
+}
+
 export interface DailyStatistics {
   dateKey: string
   focusSeconds: number
@@ -151,4 +170,47 @@ export interface SyncMetadata {
   key: string
   value: string
   updatedAt: number
+}
+
+export interface SyncMutation {
+  mutationId: string
+  profileId: string
+  entityType: SyncEntityType
+  entityId: string
+  baseRevision: number
+  operation: SyncOperation
+  payload: string
+  state: SyncMutationState
+  attemptCount: number
+  lastError: string
+  createdAt: number
+  updatedAt: number
+}
+
+export interface SyncConflict {
+  id: string
+  profileId: string
+  mutationId: string | null
+  entityType: SyncEntityType
+  entityId: string
+  localPayload: string
+  serverPayload: string
+  serverRevision: number
+  createdAt: number
+  resolvedAt: number | null
+}
+
+export interface GuestDataSummary {
+  taskCount: number
+  focusCount: number
+  points: number
+}
+
+export interface SyncStatus {
+  syncing: boolean
+  offline: boolean
+  pendingCount: number
+  conflictCount: number
+  lastSyncedAt: number | null
+  errorMessage: string
 }

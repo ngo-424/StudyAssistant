@@ -1,5 +1,4 @@
 import { common } from '@kit.AbilityKit'
-import { GUEST_PROFILE_ID } from '../../../data/database/DatabaseSchema'
 import { RepositoryRegistry } from '../../../data/repository/RepositoryRegistry'
 import { TimerRunState } from '../../../domain/model/StudyModels'
 import { HarmonyLiveViewGateway } from '../infrastructure/HarmonyLiveViewGateway'
@@ -15,6 +14,7 @@ import {
   FocusSystemStatusFactory
 } from '../system/FocusSystemModels'
 import { FocusSystemPolicy } from '../system/FocusSystemPolicy'
+import { ProfileContext } from '../../sync/application/ProfileContext'
 
 export class FocusSystemExperienceService {
   private readonly notifications: HarmonyNotificationGateway
@@ -34,7 +34,7 @@ export class FocusSystemExperienceService {
   static guest(): FocusSystemExperienceService {
     return new FocusSystemExperienceService(
       new HarmonyNotificationGateway(), new HarmonyReminderGateway(), new HarmonyLiveViewGateway(),
-      new SystemExperienceStore(RepositoryRegistry.settings(), GUEST_PROFILE_ID))
+      new SystemExperienceStore(RepositoryRegistry.settings(), ProfileContext.currentProfileId()))
   }
 
   currentStatus(): FocusSystemStatus {

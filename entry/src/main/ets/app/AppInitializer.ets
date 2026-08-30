@@ -7,6 +7,11 @@ import {
   LegacyMigrationResult,
   LegacyMigrationStatus
 } from '../data/migration/LegacyDataMigrator'
+import { SyncMetadata } from '../domain/model/StudyModels'
+import { ProfileContext } from '../features/sync/application/ProfileContext'
+
+const SYSTEM_PROFILE_ID: string = 'system'
+const PENDING_ACCOUNT_KEY: string = 'pending_account_id'
 
 export class AppInitializer {
   private static initialized: boolean = false
@@ -36,6 +41,14 @@ export class AppInitializer {
     const store = await AppDatabase.open(context)
     RepositoryRegistry.initialize(store)
     const migrationResult: LegacyMigrationResult = await LegacyDataMigrator.migrate(context, store)
+    const session = await RepositoryRegistry.accountSession().current()
+    const pending: SyncMetadata | null = await RepositoryRegistry.sync().findMetadata(
+      SYSTEM_PROFILE_ID, PENDING_ACCOUNT_KEY)
+    if (session !== null && pending?.value !== session.accountId) {
+      ProfileContext.activateAccount(session.accountId)
+    } else {
+      ProfileContext.activateGuest()
+    }
     AppInitializer.initialized = true
     if (migrationResult.status === LegacyMigrationStatus.FAILED) {
       AppLogger.warn('AppInitializer', 'Legacy data migration will be retried on the next launch')

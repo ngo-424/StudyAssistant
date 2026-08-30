@@ -1,10 +1,10 @@
 import { util } from '@kit.ArkTS'
 import { AppInitializer } from '../../../app/AppInitializer'
-import { GUEST_PROFILE_ID } from '../../../data/database/DatabaseSchema'
 import { RepositoryRegistry } from '../../../data/repository/RepositoryRegistry'
 import { StudyTask, TaskCategory } from '../../../domain/model/StudyModels'
 import { CategoryDraft, TaskDraft } from '../domain/TaskDrafts'
 import { ManageCategoriesUseCase, ManageTasksUseCase } from '../domain/ManageTasksUseCase'
+import { ProfileContext } from '../../sync/application/ProfileContext'
 
 export interface TasksScreenData {
   tasks: StudyTask[]
@@ -14,11 +14,13 @@ export interface TasksScreenData {
 export class TasksViewModel {
   private taskUseCase: ManageTasksUseCase | null = null
   private categoryUseCase: ManageCategoriesUseCase | null = null
+  private profileId: string = ''
 
   async load(): Promise<TasksScreenData> {
     await this.ensureReady()
-    const tasks: StudyTask[] = await RepositoryRegistry.tasks().findAll(GUEST_PROFILE_ID, true)
-    const categories: TaskCategory[] = await RepositoryRegistry.categories().findAll(GUEST_PROFILE_ID, true)
+    const profileId: string = ProfileContext.currentProfileId()
+    const tasks: StudyTask[] = await RepositoryRegistry.tasks().findAll(profileId, true)
+    const categories: TaskCategory[] = await RepositoryRegistry.categories().findAll(profileId, true)
     return { tasks: tasks, categories: categories }
   }
 
@@ -59,14 +61,16 @@ export class TasksViewModel {
 
   private async ensureReady(): Promise<void> {
     await AppInitializer.whenReady()
-    if (this.taskUseCase !== null && this.categoryUseCase !== null) {
+    const profileId: string = ProfileContext.currentProfileId()
+    if (this.taskUseCase !== null && this.categoryUseCase !== null && this.profileId === profileId) {
       return
     }
+    this.profileId = profileId
     this.taskUseCase = new ManageTasksUseCase(
       RepositoryRegistry.tasks(), RepositoryRegistry.categories(),
-      () => Date.now(), () => util.generateRandomUUID(true), GUEST_PROFILE_ID)
+      () => Date.now(), () => util.generateRandomUUID(true), profileId)
     this.categoryUseCase = new ManageCategoriesUseCase(
-      RepositoryRegistry.categories(), () => Date.now(), () => util.generateRandomUUID(true), GUEST_PROFILE_ID)
+      RepositoryRegistry.categories(), () => Date.now(), () => util.generateRandomUUID(true), profileId)
   }
 
   private tasksController(): ManageTasksUseCase {
