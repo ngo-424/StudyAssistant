@@ -13,6 +13,9 @@ import { SyncSchema1760000001000 } from './database/migrations/1760000001000-syn
 import { HealthController } from './health.controller';
 import { RedisModule } from './redis/redis.module';
 import { SyncModule } from './sync/sync.module';
+import { ContinuationTransferEntity } from './database/entities/continuation-transfer.entity';
+import { ContinuationSchema1760000002000 } from './database/migrations/1760000002000-continuation-schema';
+import { ContinuationModule } from './continuation/continuation.module';
 
 @Module({
   imports: [
@@ -27,8 +30,13 @@ import { SyncModule } from './sync/sync.module';
         SyncRecordEntity,
         SyncChangeEntity,
         SyncMutationEntity,
+        ContinuationTransferEntity,
       ],
-      migrations: [AuthSchema1760000000000, SyncSchema1760000001000],
+      migrations: [
+        AuthSchema1760000000000,
+        SyncSchema1760000001000,
+        ContinuationSchema1760000002000,
+      ],
       migrationsRun: true,
       synchronize: false,
       ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: true } : false,
@@ -37,6 +45,7 @@ import { SyncModule } from './sync/sync.module';
     RedisModule,
     AuthModule,
     SyncModule,
+    ContinuationModule,
   ],
   controllers: [HealthController],
 })

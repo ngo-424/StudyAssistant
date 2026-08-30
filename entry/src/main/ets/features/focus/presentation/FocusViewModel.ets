@@ -1,5 +1,5 @@
 import { AppInitializer } from '../../../app/AppInitializer'
-import { common } from '@kit.AbilityKit'
+import { AbilityConstant, common } from '@kit.AbilityKit'
 import { RepositoryRegistry } from '../../../data/repository/RepositoryRegistry'
 import { StudyTask, TaskCategory, TaskStatus, TimerConfig, TimerRunState } from '../../../domain/model/StudyModels'
 import { FocusTimerCoordinator } from '../application/FocusTimerCoordinator'
@@ -9,11 +9,17 @@ import { TimerRuntimeState } from '../domain/TimerModels'
 import { CategoryColor } from '../../tasks/domain/CategoryColor'
 import { FocusSystemDescriptor, FocusSystemStatus } from '../system/FocusSystemModels'
 import { ProfileContext } from '../../sync/application/ProfileContext'
+import { FocusContinuationService } from '../../continuation/application/FocusContinuationService'
+import {
+  ContinuationControlState,
+  ContinuationStatus
+} from '../../continuation/domain/ContinuationModels'
 
 export interface FocusScreenData {
   runtime: TimerRuntimeState
   tasks: StudyTask[]
   categories: TaskCategory[]
+  continuation: ContinuationStatus
 }
 
 export class FocusViewModel {
@@ -22,32 +28,47 @@ export class FocusViewModel {
   private tasks: StudyTask[] = []
   private categories: TaskCategory[] = []
   private profileId: string = ''
+  private continuationStatus: ContinuationStatus = {
+    state: ContinuationControlState.IDLE,
+    message: '开始计时后可使用跨设备接续',
+    canRetry: false,
+    isController: true
+  }
 
   async load(): Promise<FocusScreenData> {
     await AppInitializer.whenReady()
-    const coordinator: FocusTimerCoordinator = await this.getCoordinator()
+    await this.continuation().acceptPending()
     const profileId: string = ProfileContext.currentProfileId()
     if (this.profileId !== profileId) {
       this.profileId = profileId
       this.coordinator = null
       this.systemExperience = null
     }
+    const coordinator: FocusTimerCoordinator = await this.getCoordinator()
     const tasks: StudyTask[] = (await RepositoryRegistry.tasks().findAll(profileId))
       .filter((task: StudyTask) => task.deletedAt === null && task.status === TaskStatus.TODO)
     const categories: TaskCategory[] = (await RepositoryRegistry.categories().findAll(profileId))
       .filter((category: TaskCategory) => category.deletedAt === null)
     this.tasks = tasks
     this.categories = categories
-    const runtime: TimerRuntimeState = await coordinator.restore()
-    await this.systemController().synchronize(runtime, this.descriptor(runtime))
-    return { runtime: runtime, tasks: tasks, categories: categories }
+    const preview: TimerRuntimeState = await coordinator.peek()
+    this.continuationStatus = await this.continuation().update(preview, false)
+    const runtime: TimerRuntimeState = this.continuationStatus.isController ?
+      await coordinator.restore() : preview
+    await this.synchronizeSystem(runtime)
+    return { runtime: runtime, tasks: tasks, categories: categories,
+      continuation: this.continuationStatus }
   }
 
   async observe(): Promise<TimerRuntimeState> {
-    const runtime: TimerRuntimeState = await (await this.getCoordinator()).observe()
+    const coordinator: FocusTimerCoordinator = await this.getCoordinator()
+    const preview: TimerRuntimeState = await coordinator.peek()
+    this.continuationStatus = await this.continuation().update(preview, true)
+    const runtime: TimerRuntimeState = this.continuationStatus.isController ?
+      await coordinator.observe() : preview
     if (runtime.snapshot?.state === TimerRunState.COMPLETED ||
-      runtime.snapshot?.state === TimerRunState.ABANDONED) {
-      await this.systemController().synchronize(runtime, this.descriptor(runtime))
+      runtime.snapshot?.state === TimerRunState.ABANDONED || !this.continuationStatus.isController) {
+      await this.synchronizeSystem(runtime)
     }
     return runtime
   }
@@ -99,6 +120,26 @@ export class FocusViewModel {
     return this.systemController().currentStatus()
   }
 
+  continuationState(): ContinuationStatus {
+    return this.continuationStatus
+  }
+
+  async retryContinuation(): Promise<void> {
+    await this.continuation().acceptPending()
+  }
+
+  async updateContinuationAvailability(context: common.UIAbilityContext,
+    runtime: TimerRuntimeState): Promise<void> {
+    const active: boolean = runtime.snapshot !== null &&
+      (runtime.snapshot.state === TimerRunState.RUNNING || runtime.snapshot.state === TimerRunState.PAUSED) &&
+      !ProfileContext.isGuest() && this.continuationStatus.isController
+    try {
+      await context.setMissionContinueState(active ? AbilityConstant.ContinueState.ACTIVE :
+        AbilityConstant.ContinueState.INACTIVE)
+    } catch (error) {
+    }
+  }
+
   private async getCoordinator(): Promise<FocusTimerCoordinator> {
     if (this.coordinator === null) {
       this.coordinator = await FocusTimerService.guest()
@@ -113,9 +154,22 @@ export class FocusViewModel {
     return this.systemExperience
   }
 
+  private continuation(): FocusContinuationService {
+    return FocusContinuationService.shared()
+  }
+
   private async synchronize(runtime: TimerRuntimeState): Promise<TimerRuntimeState> {
-    await this.systemController().synchronize(runtime, this.descriptor(runtime))
+    this.continuationStatus = await this.continuation().update(runtime, false)
+    await this.synchronizeSystem(runtime)
     return runtime
+  }
+
+  private async synchronizeSystem(runtime: TimerRuntimeState): Promise<void> {
+    if (!this.continuationStatus.isController && runtime.snapshot !== null) {
+      await this.systemController().stop(runtime.snapshot.flowId)
+      return
+    }
+    await this.systemController().synchronize(runtime, this.descriptor(runtime))
   }
 
   private descriptor(runtime: TimerRuntimeState): FocusSystemDescriptor {

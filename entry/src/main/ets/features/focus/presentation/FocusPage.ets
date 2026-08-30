@@ -18,6 +18,10 @@ import {
   FocusSystemStatus,
   FocusSystemStatusFactory
 } from '../system/FocusSystemModels'
+import {
+  ContinuationControlState,
+  ContinuationStatus
+} from '../../continuation/domain/ContinuationModels'
 
 @Component
 export struct FocusPage {
@@ -33,6 +37,12 @@ export struct FocusPage {
   @State actionBusy: boolean = false
   @State errorMessage: string = ''
   @State systemStatus: FocusSystemStatus = FocusSystemStatusFactory.idle()
+  @State continuationStatus: ContinuationStatus = {
+    state: ContinuationControlState.IDLE,
+    message: '开始计时后可使用跨设备接续',
+    canRetry: false,
+    isController: true
+  }
   private readonly viewModel: FocusViewModel = new FocusViewModel()
   private timerId: number = -1
   private tickBusy: boolean = false
@@ -63,6 +73,7 @@ export struct FocusPage {
       }
       await this.applyRuntime(data.runtime, true)
       this.systemStatus = this.viewModel.systemStatus()
+      this.continuationStatus = data.continuation
       this.errorMessage = ''
     } catch (error) {
       this.errorMessage = this.readableError(error)
@@ -147,6 +158,9 @@ export struct FocusPage {
   private async applyRuntime(runtime: TimerRuntimeState, allowAutomaticStart: boolean): Promise<void> {
     this.runtime = runtime
     this.systemStatus = this.viewModel.systemStatus()
+    this.continuationStatus = this.viewModel.continuationState()
+    const context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
+    await this.viewModel.updateContinuationAvailability(context, runtime)
     if (!allowAutomaticStart || runtime.snapshot === null || this.autoTransitioning ||
       !FocusPresentation.shouldAutoStart(runtime.snapshot.state, runtime.snapshot.terminalResult,
         runtime.snapshot.phase, runtime.config)) {
@@ -228,6 +242,9 @@ export struct FocusPage {
   private readableError(error: Object): string {
     if (error instanceof AppError && error.message === 'TIMER_ALREADY_ACTIVE') {
       return '已有一个进行中的计时，请先完成当前阶段'
+    }
+    if (error instanceof AppError && error.message === 'TIMER_CONTROL_TRANSFERRED') {
+      return '本次计时已转移到另一设备，当前设备不能继续操作'
     }
     return '计时操作没有完成，请稍后重试'
   }
@@ -327,6 +344,8 @@ export struct FocusPage {
 
         this.SystemCapabilityStatus()
 
+        this.ContinuationStatusCard()
+
         if (this.runtime.snapshot === null && !this.loading && !this.isCompact) {
           this.TaskPicker()
         }
@@ -342,7 +361,13 @@ export struct FocusPage {
 
   @Builder
   private ActionArea() {
-    if (this.runtime.snapshot === null) {
+    if (!this.continuationStatus.isController && this.runtime.snapshot !== null) {
+      Button('已在另一设备继续')
+        .width(this.isWide ? 280 : '100%').height(50)
+        .fontWeight(FontWeight.Bold).fontColor($r('app.color.text_secondary'))
+        .backgroundColor($r('app.color.surface_secondary')).borderRadius(AppRadius.MD)
+        .enabled(false)
+    } else if (this.runtime.snapshot === null) {
       Button($r('app.string.focus_start'))
         .width(this.isWide ? 280 : '100%')
         .height(52)
@@ -469,6 +494,41 @@ export struct FocusPage {
         this.runtime.snapshot === null) {
         Text('开始时询问')
           .fontSize(AppTypography.CAPTION).fontColor($r('app.color.brand_primary'))
+      }
+    }
+    .width('100%').padding(AppSpacing.MD)
+    .backgroundColor($r('app.color.surface_primary'))
+    .borderRadius(AppRadius.MD)
+    .border({ width: 1, color: $r('app.color.border_subtle') })
+  }
+
+  @Builder
+  private ContinuationStatusCard() {
+    Row({ space: AppSpacing.SM }) {
+      Text(this.continuationStatus.state === ContinuationControlState.TRANSFERRED ? '✓' : '⇄')
+        .width(28).height(28).textAlign(TextAlign.Center)
+        .fontColor(this.continuationStatus.state === ContinuationControlState.OFFLINE ||
+          this.continuationStatus.state === ContinuationControlState.FAILED ?
+          $r('app.color.text_secondary') : $r('app.color.brand_primary'))
+        .backgroundColor($r('app.color.brand_container'))
+        .borderRadius(AppRadius.PILL)
+      Column({ space: 2 }) {
+        Text('跨设备接续')
+          .fontSize(AppTypography.CAPTION).fontWeight(FontWeight.Bold)
+          .fontColor($r('app.color.text_primary'))
+        Text(this.continuationStatus.message)
+          .fontSize(AppTypography.CAPTION).fontColor($r('app.color.text_secondary'))
+      }
+      .layoutWeight(1).alignItems(HorizontalAlign.Start)
+      if (this.continuationStatus.canRetry) {
+        Button('重试')
+          .fontSize(AppTypography.CAPTION)
+          .fontColor($r('app.color.brand_primary'))
+          .backgroundColor(Color.Transparent)
+          .onClick(async () => {
+            await this.viewModel.retryContinuation()
+            await this.load()
+          })
       }
     }
     .width('100%').padding(AppSpacing.MD)

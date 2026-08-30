@@ -12,6 +12,7 @@ import { FocusTimerEngine } from '../domain/FocusTimerEngine'
 import {
   TimerPhaseOutcome,
   TimerRuntimeState,
+  TimerControlGuard,
   TimerStartContext,
   TimerTransition
 } from '../domain/TimerModels'
@@ -27,16 +28,18 @@ export class FocusTimerCoordinator {
   private readonly clock: () => number
   private readonly idFactory: () => string
   private readonly rewards: RewardSettlementService | null
+  private readonly controlGuard: TimerControlGuard | null
 
   constructor(timerState: TimerStateRepository, sessions: FocusSessionRepository,
     profileId: string, clock: () => number, idFactory: () => string,
-    rewards: RewardSettlementService | null = null) {
+    rewards: RewardSettlementService | null = null, controlGuard: TimerControlGuard | null = null) {
     this.timerState = timerState
     this.sessions = sessions
     this.profileId = profileId
     this.clock = clock
     this.idFactory = idFactory
     this.rewards = rewards
+    this.controlGuard = controlGuard
   }
 
   async restore(): Promise<TimerRuntimeState> {
@@ -44,6 +47,9 @@ export class FocusTimerCoordinator {
     const saved: ActiveTimerSnapshot | null = await this.timerState.loadSnapshot(this.profileId)
     if (saved === null) {
       return { config: config, snapshot: null, reading: null }
+    }
+    if (!await this.canControl(saved)) {
+      return { config: config, snapshot: saved, reading: FocusTimerEngine.read(saved, this.clock()) }
     }
     const transition: TimerTransition = FocusTimerEngine.synchronize(saved, this.clock())
     if (transition.outcome !== null || transition.reading.clockAdjusted) {
@@ -82,6 +88,7 @@ export class FocusTimerCoordinator {
   async observe(): Promise<TimerRuntimeState> {
     const config: TimerConfig = await this.loadConfig()
     const snapshot: ActiveTimerSnapshot = await this.requireSnapshot()
+    await this.assertControl(snapshot)
     const now: number = this.clock()
     const transition: TimerTransition = FocusTimerEngine.synchronize(snapshot, now)
     if (transition.outcome !== null || transition.reading.clockAdjusted ||
@@ -143,6 +150,16 @@ export class FocusTimerCoordinator {
     }
   }
 
+  async peek(): Promise<TimerRuntimeState> {
+    const config: TimerConfig = await this.loadConfig()
+    const snapshot: ActiveTimerSnapshot | null = await this.timerState.loadSnapshot(this.profileId)
+    return {
+      config: config,
+      snapshot: snapshot,
+      reading: snapshot === null ? null : FocusTimerEngine.read(snapshot, this.clock())
+    }
+  }
+
   private async reconcileReward(sessionId: string): Promise<void> {
     if (this.rewards === null) {
       return
@@ -198,6 +215,17 @@ export class FocusTimerCoordinator {
     if (snapshot === null) {
       throw new AppError(AppErrorCode.VALIDATION, 'TIMER_NOT_FOUND')
     }
+    await this.assertControl(snapshot)
     return snapshot
+  }
+
+  private async canControl(snapshot: ActiveTimerSnapshot): Promise<boolean> {
+    return this.controlGuard === null || await this.controlGuard.canControl(snapshot)
+  }
+
+  private async assertControl(snapshot: ActiveTimerSnapshot): Promise<void> {
+    if (!await this.canControl(snapshot)) {
+      throw new AppError(AppErrorCode.VALIDATION, 'TIMER_CONTROL_TRANSFERRED')
+    }
   }
 }
