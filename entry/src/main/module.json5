@@ -25,6 +25,7 @@
           "split",
           "floating"
         ],
+        "continuable": true,
         "exported": true,
         "skills": [
           {

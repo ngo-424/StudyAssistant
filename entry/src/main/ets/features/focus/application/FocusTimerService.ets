@@ -5,6 +5,7 @@ import { AppLogger } from '../../../core/logging/AppLogger'
 import { FocusTimerCoordinator } from './FocusTimerCoordinator'
 import { RewardSettlementService } from '../../rewards/application/RewardSettlementService'
 import { ProfileContext } from '../../sync/application/ProfileContext'
+import { FocusContinuationService } from '../../continuation/application/FocusContinuationService'
 
 export class FocusTimerService {
   private static coordinator: FocusTimerCoordinator | null = null
@@ -26,7 +27,7 @@ export class FocusTimerService {
       }
       FocusTimerService.coordinator = new FocusTimerCoordinator(
         RepositoryRegistry.timerState(), RepositoryRegistry.focusSessions(), profileId,
-        () => Date.now(), idFactory, settlement)
+        () => Date.now(), idFactory, settlement, FocusContinuationService.shared())
     }
     return FocusTimerService.coordinator
   }

@@ -8,7 +8,15 @@ import {
 } from '../main/ets/domain/model/StudyModels'
 import { FocusSessionRepository, TimerStateRepository } from '../main/ets/domain/repository/StudyRepositories'
 import { FocusTimerCoordinator } from '../main/ets/features/focus/application/FocusTimerCoordinator'
-import { TimerRuntimeState } from '../main/ets/features/focus/domain/TimerModels'
+import { TimerControlGuard, TimerRuntimeState } from '../main/ets/features/focus/domain/TimerModels'
+
+class MemoryControlGuard implements TimerControlGuard {
+  allowed: boolean = true
+
+  async canControl(snapshot: ActiveTimerSnapshot): Promise<boolean> {
+    return this.allowed
+  }
+}
 
 class MemoryTimerStateRepository implements TimerStateRepository {
   config: TimerConfig | null = null
@@ -138,6 +146,23 @@ export default function focusTimerCoordinatorTest(): void {
       expect(sessions.sessions.length).assertEqual(2)
       await coordinator.dismissTerminal()
       expect(timerState.snapshot).assertEqual(null)
+    })
+
+    it('doesNotSettleATimerAfterControlWasTransferred', 0, async () => {
+      const timerState: MemoryTimerStateRepository = new MemoryTimerStateRepository()
+      const sessions: MemoryFocusSessionRepository = new MemoryFocusSessionRepository()
+      const guard: MemoryControlGuard = new MemoryControlGuard()
+      let now: number = 1000
+      const coordinator: FocusTimerCoordinator = new FocusTimerCoordinator(
+        timerState, sessions, 'account:account-1', () => now,
+        () => '00000000-0000-4000-8000-000000000001', null, guard)
+      await coordinator.start(null, null)
+      guard.allowed = false
+      now = 2000000
+
+      const restored: TimerRuntimeState = await coordinator.restore()
+      expect(restored.snapshot?.state).assertEqual(TimerRunState.RUNNING)
+      expect(sessions.sessions.length).assertEqual(0)
     })
   })
 }

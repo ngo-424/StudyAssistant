@@ -10,6 +10,7 @@ import rewardRulesTest from './RewardRules.test'
 import taskManagementTest from './TaskManagement.test'
 import authRulesTest from './AuthRules.test'
 import syncProfileTest from './SyncProfile.test'
+import continuationRulesTest from './ContinuationRules.test'
 
 export default function testsuite() {
   dataFoundationTest()
@@ -24,4 +25,5 @@ export default function testsuite() {
   taskManagementTest()
   authRulesTest()
   syncProfileTest()
+  continuationRulesTest()
 }

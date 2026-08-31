@@ -42,3 +42,7 @@ export interface TimerRuntimeState {
   snapshot: ActiveTimerSnapshot | null
   reading: TimerReading | null
 }
+
+export interface TimerControlGuard {
+  canControl(snapshot: ActiveTimerSnapshot): Promise<boolean>
+}
