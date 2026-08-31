@@ -1,11 +1,11 @@
 import { reminderAgentManager } from '@kit.BackgroundTasksKit'
 import { notificationManager } from '@kit.NotificationKit'
+import { BUNDLE_NAME } from 'BuildProfile'
 import { ActiveTimerSnapshot } from '../../../domain/model/StudyModels'
 import { TimerReading } from '../domain/TimerModels'
 import { FocusSystemDescriptor } from '../system/FocusSystemModels'
 import { FocusSystemPolicy } from '../system/FocusSystemPolicy'
 
-const BUNDLE_NAME: string = 'com.example.studyassistant'
 const ABILITY_NAME: string = 'EntryAbility'
 
 export class HarmonyReminderGateway {

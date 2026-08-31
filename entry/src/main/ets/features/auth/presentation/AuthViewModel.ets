@@ -110,9 +110,14 @@ export class AuthViewModel {
 
   async deleteAccount(): Promise<void> {
     await this.ensureReady()
+    const profileId: string = ProfileContext.currentProfileId()
     await this.auth().deleteAccount()
-    ProfileContext.activateGuest()
-    await RepositoryRegistry.sync().removeMetadata(SYSTEM_PROFILE_ID, PENDING_ACCOUNT_KEY)
+    try {
+      await RepositoryRegistry.sync().deleteProfileData(profileId)
+    } finally {
+      ProfileContext.activateGuest()
+      await RepositoryRegistry.sync().removeMetadata(SYSTEM_PROFILE_ID, PENDING_ACCOUNT_KEY)
+    }
   }
 
   errorCode(error: Object): string {

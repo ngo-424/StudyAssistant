@@ -1,7 +1,7 @@
 {
   "app": {
-    "bundleName": "com.example.studyassistant",
-    "vendor": "example",
+    "bundleName": "com.ngo424.studyassistant_shiya",
+    "vendor": "Jared Zhang",
     "versionCode": 1000000,
     "versionName": "1.0.0",
     "buildVersion": "1",
