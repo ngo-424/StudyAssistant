@@ -29,10 +29,10 @@ export class AuthPresentation {
       return '验证码暂时无法发送，请稍后重试'
     }
     if (code === 'NETWORK_UNAVAILABLE') {
-      return '无法连接账号服务，请检查网络和服务地址'
+      return '暂时无法连接云端，请检查网络后重试'
     }
     if (code === 'SERVICE_NOT_CONFIGURED') {
-      return '线上账号服务尚未开放，游客模式仍可正常使用'
+      return '云端账号暂时不可用，游客模式仍可正常使用'
     }
     if (code === 'SESSION_EXPIRED') {
       return '登录已过期，请重新验证邮箱'
