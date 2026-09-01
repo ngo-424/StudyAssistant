@@ -1,5 +1,6 @@
 import { common } from '@kit.AbilityKit'
 import { AppError } from '../../../core/error/AppError'
+import { HapticFeedbackService } from '../../../core/haptics/HapticFeedbackService'
 import { AppBreakpoint, AppControl, AppRadius, AppSpacing, AppTypography } from '../../../core/design/DesignTokens'
 import { AppStatusBanner, MessageTone } from '../../../shared/components/AppFeedback'
 import {
@@ -102,7 +103,9 @@ export struct FocusPage {
   private async start(): Promise<void> {
     const context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
     this.systemStatus = await this.viewModel.requestNotificationPermission(context)
-    await this.runAction(async () => this.viewModel.start(this.selectedTask()), '专注已开始')
+    if (await this.runAction(async () => this.viewModel.start(this.selectedTask()), '专注已开始')) {
+      await HapticFeedbackService.touch()
+    }
   }
 
   private async pause(): Promise<void> {
@@ -118,7 +121,9 @@ export struct FocusPage {
   }
 
   private async abandon(): Promise<void> {
-    await this.runAction(async () => this.viewModel.abandon(), '本阶段已放弃')
+    if (await this.runAction(async () => this.viewModel.abandon(), '本阶段已放弃')) {
+      await HapticFeedbackService.success()
+    }
   }
 
   private async startNextPhase(): Promise<void> {
@@ -143,29 +148,35 @@ export struct FocusPage {
     }
   }
 
-  private async runAction(action: () => Promise<TimerRuntimeState>, successMessage: string): Promise<void> {
+  private async runAction(action: () => Promise<TimerRuntimeState>, successMessage: string): Promise<boolean> {
     if (this.actionBusy) {
-      return
+      return false
     }
     this.actionBusy = true
     try {
       await this.applyRuntime(await action(), false)
       this.errorMessage = ''
       this.actionMessage = successMessage
+      return true
     } catch (error) {
       this.errorMessage = this.readableError(error)
       this.actionMessage = ''
+      return false
     } finally {
       this.actionBusy = false
     }
   }
 
   private async applyRuntime(runtime: TimerRuntimeState, allowAutomaticStart: boolean): Promise<void> {
+    const previousState: TimerRunState | null = this.runtime.snapshot?.state ?? null
     this.runtime = runtime
     this.systemStatus = this.viewModel.systemStatus()
     this.continuationStatus = this.viewModel.continuationState()
     const context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
     await this.viewModel.updateContinuationAvailability(context, runtime)
+    if (runtime.snapshot?.state === TimerRunState.COMPLETED && previousState !== TimerRunState.COMPLETED) {
+      await HapticFeedbackService.success()
+    }
     if (!allowAutomaticStart || runtime.snapshot === null || this.autoTransitioning ||
       !FocusPresentation.shouldAutoStart(runtime.snapshot.state, runtime.snapshot.terminalResult,
         runtime.snapshot.phase, runtime.config)) {

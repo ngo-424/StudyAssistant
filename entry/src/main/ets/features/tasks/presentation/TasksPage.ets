@@ -1,4 +1,5 @@
 import { AppError } from '../../../core/error/AppError'
+import { HapticFeedbackService } from '../../../core/haptics/HapticFeedbackService'
 import { AppBreakpoint, AppControl, AppRadius, AppSpacing, AppTypography } from '../../../core/design/DesignTokens'
 import { StudyTask, TaskCategory, TaskStatus } from '../../../domain/model/StudyModels'
 import { AppStatusBanner, MessageTone } from '../../../shared/components/AppFeedback'
@@ -111,6 +112,7 @@ export struct TasksPage {
       this.cancelTaskEdit()
       await this.reload(false)
       this.successMessage = '任务已保存'
+      await HapticFeedbackService.success()
     } catch (error) {
       this.errorMessage = this.readableError(error)
     } finally {
@@ -128,6 +130,9 @@ export struct TasksPage {
       await this.viewModel.setTaskCompleted(task, completing)
       await this.reload(false)
       this.successMessage = completing ? '任务已完成' : '任务已恢复为进行中'
+      if (completing) {
+        await HapticFeedbackService.success()
+      }
     } catch (error) {
       this.errorMessage = this.readableError(error)
     } finally {
@@ -163,6 +168,7 @@ export struct TasksPage {
       }
       await this.reload(false)
       this.successMessage = '任务已移到回收站'
+      await HapticFeedbackService.success()
     } catch (error) {
       this.errorMessage = this.readableError(error)
     } finally {
@@ -221,6 +227,7 @@ export struct TasksPage {
       this.cancelCategoryEdit()
       await this.reload(false)
       this.successMessage = '类别已保存'
+      await HapticFeedbackService.success()
     } catch (error) {
       this.errorMessage = this.readableError(error)
     } finally {
@@ -256,6 +263,7 @@ export struct TasksPage {
       }
       await this.reload(false)
       this.successMessage = '类别已删除，原任务仍会保留'
+      await HapticFeedbackService.success()
     } catch (error) {
       this.errorMessage = this.readableError(error)
     } finally {

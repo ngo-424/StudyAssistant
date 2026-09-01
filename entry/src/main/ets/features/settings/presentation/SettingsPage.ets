@@ -1,4 +1,5 @@
 import { AppError } from '../../../core/error/AppError'
+import { HapticFeedbackService } from '../../../core/haptics/HapticFeedbackService'
 import { AppBreakpoint, AppControl, AppRadius, AppSpacing, AppTypography } from '../../../core/design/DesignTokens'
 import { TimerConfig } from '../../../domain/model/StudyModels'
 import { AppActionButton, ActionState, AppStatusBanner, MessageTone } from '../../../shared/components/AppFeedback'
@@ -201,6 +202,7 @@ export struct SettingsPage {
       this.config = await this.viewModel.save(this.config)
       this.saved = true
       this.errorMessage = ''
+      await HapticFeedbackService.success()
     } catch (error) {
       this.errorMessage = this.readableError(error)
     } finally {
