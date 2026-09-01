@@ -1,4 +1,5 @@
-import { AppBreakpoint, AppRadius, AppSpacing, AppTypography } from '../../../core/design/DesignTokens'
+import { AppBreakpoint, AppControl, AppRadius, AppSpacing, AppTypography } from '../../../core/design/DesignTokens'
+import { AppEmptyState, AppLoadingState, AppStatusBanner, MessageTone } from '../../../shared/components/AppFeedback'
 import { CategoryFocusSegment, CategoryFocusShare, HeatmapDay, InsightsDashboard, TrendPoint } from '../domain/InsightsModels'
 import { InsightsAggregator } from '../domain/InsightsAggregator'
 import { InsightsPresentation } from './InsightsPresentation'
@@ -104,20 +105,15 @@ export struct InsightsPage {
         .alignItems(HorizontalAlign.Start)
 
         if (this.loading) {
-          Column({ space: AppSpacing.MD }) {
-            LoadingProgress().width(52).height(52).color($r('app.color.brand_primary'))
-            Text('正在汇总本地专注记录')
-              .fontSize(AppTypography.BODY).fontColor($r('app.color.text_secondary'))
-          }
-          .width('100%').height(320).justifyContent(FlexAlign.Center)
+          AppLoadingState({ message: '正在整理你的专注记录' })
         } else if (this.errorMessage.length > 0) {
           Column({ space: AppSpacing.MD }) {
-            Text(this.errorMessage)
-              .fontSize(AppTypography.BODY).fontColor($r('app.color.text_secondary'))
-              .textAlign(TextAlign.Center)
-            Button('重新读取')
+            AppStatusBanner({ message: this.errorMessage, tone: MessageTone.ERROR })
+            Button('再试一次')
+              .height(AppControl.PRIMARY_HEIGHT)
               .fontColor($r('app.color.brand_on_primary'))
               .backgroundColor($r('app.color.brand_primary'))
+              .borderRadius(AppRadius.MD)
               .onClick(() => this.load())
           }
           .width('100%').padding(AppSpacing.XL)
@@ -126,17 +122,11 @@ export struct InsightsPage {
           this.Metrics()
 
           if (!this.dashboard.hasFocusData) {
-            Column({ space: AppSpacing.SM }) {
-              Text('从第一次专注开始')
-                .fontSize(18).fontWeight(FontWeight.Bold)
-                .fontColor($r('app.color.text_primary'))
-              Text($r('app.string.insights_empty'))
-                .fontSize(AppTypography.BODY).fontColor($r('app.color.text_secondary'))
-                .textAlign(TextAlign.Center)
-            }
-            .width('100%').padding(AppSpacing.XXL)
-            .backgroundColor($r('app.color.surface_primary')).borderRadius(AppRadius.LG)
-            .border({ width: 1, color: $r('app.color.border_subtle') })
+            AppEmptyState({
+              symbol: $r('sys.symbol.waveform'),
+              title: '从第一次专注开始',
+              message: $r('app.string.insights_empty')
+            })
           } else {
             this.WeeklyTrend()
             this.Heatmap()
@@ -185,9 +175,9 @@ export struct InsightsPage {
   private WeeklyTrend() {
     Column({ space: AppSpacing.LG }) {
       Column({ space: AppSpacing.XS }) {
-        Text('近 7 天趋势')
+        Text('过去 7 天')
           .fontSize(18).fontWeight(FontWeight.Bold).fontColor($r('app.color.text_primary'))
-        Text(`累计 ${InsightsPresentation.duration(this.weeklySeconds())}`)
+        Text(`这 7 天共专注 ${InsightsPresentation.duration(this.weeklySeconds())}，柱子越高代表当天越投入`)
           .fontSize(AppTypography.CAPTION).fontColor($r('app.color.text_secondary'))
       }
       .width('100%').alignItems(HorizontalAlign.Start)
@@ -217,7 +207,7 @@ export struct InsightsPage {
       .width('100%').alignItems(VerticalAlign.Bottom)
     }
     .width('100%').padding(AppSpacing.XL)
-    .backgroundColor($r('app.color.surface_primary')).borderRadius(AppRadius.LG)
+    .backgroundColor($r('app.color.surface_tinted')).borderRadius(AppRadius.LG)
     .border({ width: 1, color: $r('app.color.border_subtle') })
   }
 
@@ -225,9 +215,9 @@ export struct InsightsPage {
   private Heatmap() {
     Column({ space: AppSpacing.LG }) {
       Column({ space: AppSpacing.XS }) {
-        Text('近 12 周专注热力图')
+        Text('过去 12 周的专注足迹')
           .fontSize(18).fontWeight(FontWeight.Bold).fontColor($r('app.color.text_primary'))
-        Text('颜色越深，表示当天专注时间越长')
+        Text('每个方格代表一天，颜色越深表示当天专注得越久')
           .fontSize(AppTypography.CAPTION).fontColor($r('app.color.text_secondary'))
       }
       .width('100%').alignItems(HorizontalAlign.Start)
@@ -257,9 +247,9 @@ export struct InsightsPage {
   private CategoryDistribution() {
     Column({ space: AppSpacing.LG }) {
       Column({ space: AppSpacing.XS }) {
-        Text('类别时间分布')
+        Text('时间花在了哪里')
           .fontSize(18).fontWeight(FontWeight.Bold).fontColor($r('app.color.text_primary'))
-        Text(`全部专注 ${InsightsPresentation.duration(this.dashboard.totalFocusSeconds)}`)
+        Text(`全部记录中，已累计专注 ${InsightsPresentation.duration(this.dashboard.totalFocusSeconds)}`)
           .fontSize(AppTypography.CAPTION).fontColor($r('app.color.text_secondary'))
       }
       .width('100%').alignItems(HorizontalAlign.Start)
