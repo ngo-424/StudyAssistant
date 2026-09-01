@@ -49,6 +49,10 @@
       "value": "开始专注"
     },
     {
+      "name": "focus_starting",
+      "value": "正在开始"
+    },
+    {
       "name": "focus_module_hint",
       "value": "计时能力将在专注模块启用"
     },
