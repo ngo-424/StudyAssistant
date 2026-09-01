@@ -1,7 +1,31 @@
-import { AppRadius, AppSpacing, AppTypography } from '../../../core/design/DesignTokens'
+import { AppControl, AppRadius, AppSpacing, AppTypography } from '../../../core/design/DesignTokens'
+import { HapticFeedbackService } from '../../../core/haptics/HapticFeedbackService'
+import { AppStatusBanner, MessageTone } from '../../../shared/components/AppFeedback'
 import { SyncConflict, SyncStatus } from '../../../domain/model/StudyModels'
 import { ProfileContext } from '../application/ProfileContext'
 import { SyncScreenData, SyncViewModel } from './SyncViewModel'
+import { SyncConflictPresentation, SyncConflictVersionDisplay } from './SyncConflictPresentation'
+
+@Component
+struct ConflictVersionCard {
+  @Prop label: string
+  @Prop version: SyncConflictVersionDisplay
+
+  build() {
+    Column({ space: AppSpacing.XS }) {
+      Text(this.label).fontSize(AppTypography.CAPTION).fontWeight(FontWeight.Bold)
+        .fontColor($r('app.color.brand_primary'))
+      Text(this.version.name).fontSize(AppTypography.BODY).fontWeight(FontWeight.Bold)
+        .fontColor($r('app.color.text_primary')).maxLines(2)
+      Text(this.version.content).fontSize(AppTypography.CAPTION)
+        .fontColor($r('app.color.text_secondary')).maxLines(3)
+      Text(this.version.modifiedText).fontSize(AppTypography.CAPTION)
+        .fontColor($r('app.color.text_tertiary'))
+    }
+    .layoutWeight(1).alignItems(HorizontalAlign.Start).padding(AppSpacing.MD)
+    .backgroundColor($r('app.color.surface_secondary')).borderRadius(AppRadius.SM)
+  }
+}
 
 @Component
 export struct SyncPanel {
@@ -13,6 +37,7 @@ export struct SyncPanel {
     lastSyncedAt: null, errorMessage: ''
   }
   @State conflicts: SyncConflict[] = []
+  @State message: string = ''
   private readonly viewModel: SyncViewModel = new SyncViewModel()
 
   aboutToAppear(): void {
@@ -49,15 +74,30 @@ export struct SyncPanel {
       this.apply(await this.viewModel.synchronize())
       this.status.offline = false
       this.status.errorMessage = ''
+      this.message = '已与云端保持一致'
     } catch (error) {
       const data: SyncScreenData = await this.viewModel.load()
       this.apply(data)
       this.status.offline = true
       this.status.errorMessage = '当前离线或服务暂不可用，变更已安全保留，将在下次同步时重试'
+      this.message = ''
     } finally {
       this.status.syncing = false
       this.working = false
     }
+  }
+
+  private confirmResolve(conflict: SyncConflict, useCloud: boolean): void {
+    if (!SyncConflictPresentation.map(conflict).previewable) {
+      return
+    }
+    const choice: string = useCloud ? '云端内容' : '本机内容'
+    this.getUIContext().showAlertDialog({
+      title: `确定使用${choice}？`,
+      message: `另一份内容不会继续使用。确认前请再次比较名称、内容和修改时间。`,
+      primaryButton: { value: '再看看', action: () => {} },
+      secondaryButton: { value: `使用${choice}`, action: () => this.resolve(conflict, useCloud) }
+    })
   }
 
   private async resolve(conflict: SyncConflict, useCloud: boolean): Promise<void> {
@@ -69,9 +109,12 @@ export struct SyncPanel {
       const data: SyncScreenData = useCloud ?
         await this.viewModel.resolveUsingCloud(conflict) : await this.viewModel.resolveUsingLocal(conflict)
       this.apply(data)
-      this.status.errorMessage = useCloud ? '已采用云端版本' : '已保留本机版本，将在下次同步上传'
+      this.status.errorMessage = ''
+      this.message = useCloud ? '已采用云端内容' : '已保留本机内容，稍后会同步到云端'
+      await HapticFeedbackService.success()
     } catch (error) {
       this.status.errorMessage = '冲突处理失败，请稍后重试'
+      this.message = ''
     } finally {
       this.working = false
     }
@@ -97,21 +140,30 @@ export struct SyncPanel {
   @Builder
   private ConflictCard(conflict: SyncConflict) {
     Column({ space: AppSpacing.SM }) {
-      Text('发现多设备修改冲突').width('100%').fontSize(AppTypography.BODY)
+      Text(SyncConflictPresentation.map(conflict).title).width('100%').fontSize(AppTypography.BODY)
         .fontWeight(FontWeight.Bold).fontColor($r('app.color.text_primary'))
-      Text(`${conflict.entityType} · ${conflict.entityId.slice(0, 8)}…`)
+      Text('本机和云端内容都已安全保留，请比较后选择继续使用哪一份。')
         .width('100%').fontSize(AppTypography.CAPTION).fontColor($r('app.color.text_secondary'))
-      Text('本机和云端内容均已保留，请明确选择要继续使用的版本。')
-        .width('100%').fontSize(AppTypography.CAPTION).fontColor($r('app.color.text_secondary'))
-      Row({ space: AppSpacing.MD }) {
-        Button('采用云端').layoutWeight(1).height(40).fontSize(AppTypography.CAPTION)
-          .fontColor($r('app.color.text_primary')).backgroundColor($r('app.color.surface_secondary'))
-          .borderRadius(AppRadius.SM).enabled(!this.working).onClick(() => this.resolve(conflict, true))
-        Button('保留本机').layoutWeight(1).height(40).fontSize(AppTypography.CAPTION)
-          .fontColor($r('app.color.brand_on_primary')).backgroundColor($r('app.color.brand_primary'))
-          .borderRadius(AppRadius.SM).enabled(!this.working).onClick(() => this.resolve(conflict, false))
+      Row({ space: AppSpacing.SM }) {
+        ConflictVersionCard({ label: '本机内容', version: SyncConflictPresentation.map(conflict).local })
+        ConflictVersionCard({ label: '云端内容', version: SyncConflictPresentation.map(conflict).cloud })
       }
       .width('100%')
+      if (SyncConflictPresentation.map(conflict).previewable) {
+        Row({ space: AppSpacing.MD }) {
+          Button('使用云端内容').layoutWeight(1).height(AppControl.MIN_TOUCH).fontSize(AppTypography.CAPTION)
+            .fontColor($r('app.color.text_primary')).backgroundColor($r('app.color.surface_secondary'))
+            .borderRadius(AppRadius.SM).enabled(!this.working)
+            .onClick(() => this.confirmResolve(conflict, true))
+          Button('保留本机内容').layoutWeight(1).height(AppControl.MIN_TOUCH).fontSize(AppTypography.CAPTION)
+            .fontColor($r('app.color.brand_on_primary')).backgroundColor($r('app.color.brand_primary'))
+            .borderRadius(AppRadius.SM).enabled(!this.working)
+            .onClick(() => this.confirmResolve(conflict, false))
+        }
+        .width('100%')
+      } else {
+        AppStatusBanner({ message: '暂时无法安全读取这两份内容，已禁止覆盖。请稍后重试同步。', tone: MessageTone.WARNING })
+      }
     }
     .width('100%').padding(AppSpacing.MD).backgroundColor($r('app.color.danger_container'))
     .borderRadius(AppRadius.SM)
@@ -120,9 +172,8 @@ export struct SyncPanel {
   build() {
     Column({ space: AppSpacing.MD }) {
       Row({ space: AppSpacing.MD }) {
-        Text('⇄').width(42).height(42).fontSize(18).textAlign(TextAlign.Center)
-          .fontColor($r('app.color.brand_primary')).backgroundColor($r('app.color.brand_container'))
-          .borderRadius(AppRadius.SM)
+        SymbolGlyph($r('sys.symbol.arrow_left_arrow_right')).fontSize(30)
+          .fontColor([$r('app.color.brand_primary')])
         Column({ space: AppSpacing.XS }) {
           Text('多设备同步').fontSize(AppTypography.BODY).fontWeight(FontWeight.Bold)
             .fontColor($r('app.color.text_primary'))
@@ -130,10 +181,12 @@ export struct SyncPanel {
             .fontSize(AppTypography.CAPTION).fontColor($r('app.color.text_secondary'))
         }
         .layoutWeight(1).alignItems(HorizontalAlign.Start)
-        Button(this.isGuest ? '刷新' : (this.working ? '同步中' : '立即同步')).height(40)
-          .fontSize(AppTypography.CAPTION).fontColor($r('app.color.brand_on_primary'))
-          .backgroundColor($r('app.color.brand_primary')).borderRadius(AppRadius.SM)
-          .enabled(!this.working).onClick(() => this.isGuest ? this.load() : this.synchronize())
+        if (!this.isGuest) {
+          Button(this.working ? '正在同步' : '立即同步').height(AppControl.MIN_TOUCH)
+            .fontSize(AppTypography.CAPTION).fontColor($r('app.color.brand_on_primary'))
+            .backgroundColor($r('app.color.brand_primary')).borderRadius(AppRadius.SM)
+            .enabled(!this.working).onClick(() => this.synchronize())
+        }
       }
       .width('100%')
 
@@ -149,9 +202,12 @@ export struct SyncPanel {
       }
 
       if (this.status.errorMessage.length > 0) {
-        Text(this.status.errorMessage).width('100%').fontSize(AppTypography.CAPTION)
-          .fontColor(this.status.offline ? $r('app.color.text_secondary') : $r('app.color.danger'))
-          .padding(AppSpacing.MD).backgroundColor($r('app.color.surface_secondary')).borderRadius(AppRadius.SM)
+        AppStatusBanner({
+          message: this.status.errorMessage,
+          tone: this.status.offline ? MessageTone.WARNING : MessageTone.ERROR
+        })
+      } else if (this.message.length > 0) {
+        AppStatusBanner({ message: this.message, tone: MessageTone.SUCCESS })
       }
 
       ForEach(this.conflicts, (conflict: SyncConflict) => {
