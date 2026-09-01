@@ -1,4 +1,4 @@
-import { AppRadius, AppSpacing, AppTypography } from '../../../../core/design/DesignTokens'
+import { AppControl, AppRadius, AppSpacing, AppTypography } from '../../../../core/design/DesignTokens'
 import { TaskCategory } from '../../../../domain/model/StudyModels'
 import { CategorySelector } from './CategorySelector'
 
@@ -6,6 +6,7 @@ import { CategorySelector } from './CategorySelector'
 export struct TaskEditor {
   @Prop isWide: boolean = false
   @Prop isEditing: boolean = false
+  @Prop saving: boolean = false
   @Prop categories: TaskCategory[] = []
   @Link title: string
   @Link notes: string
@@ -59,13 +60,17 @@ export struct TaskEditor {
         .alignItems(HorizontalAlign.Start)
         .layoutWeight(1)
 
-        Button('×')
-          .width(40)
-          .height(40)
-          .fontSize(22)
-          .fontColor($r('app.color.text_secondary'))
+        Button() {
+          SymbolGlyph($r('sys.symbol.xmark'))
+            .fontSize(20)
+            .fontColor([$r('app.color.text_secondary')])
+        }
+          .width(AppControl.MIN_TOUCH)
+          .height(AppControl.MIN_TOUCH)
           .backgroundColor($r('app.color.surface_secondary'))
           .borderRadius(AppRadius.PILL)
+          .enabled(!this.saving)
+          .accessibilityText($r('app.string.common_close'))
           .onClick(this.onCancel)
       }
       .width('100%')
@@ -88,16 +93,20 @@ export struct TaskEditor {
       Row({ space: AppSpacing.MD }) {
         Blank()
         Button($r('app.string.common_cancel'))
+          .height(AppControl.MIN_TOUCH)
           .fontColor($r('app.color.text_secondary'))
           .backgroundColor($r('app.color.surface_secondary'))
           .borderRadius(AppRadius.MD)
+          .enabled(!this.saving)
           .onClick(this.onCancel)
-        Button(this.isEditing ? $r('app.string.common_save') : $r('app.string.task_create_action'))
+        Button(this.saving ? $r('app.string.task_saving') :
+          (this.isEditing ? $r('app.string.common_save') : $r('app.string.task_create_action')))
+          .height(AppControl.MIN_TOUCH)
           .fontWeight(FontWeight.Bold)
           .fontColor($r('app.color.brand_on_primary'))
           .backgroundColor($r('app.color.brand_primary'))
           .borderRadius(AppRadius.MD)
-          .enabled(this.canSave())
+          .enabled(this.canSave() && !this.saving)
           .onClick(this.onSave)
       }
       .width('100%')
@@ -182,7 +191,7 @@ export struct TaskEditor {
           ForEach([15, 25, 45, 60], (minutes: number) => {
             Button(`${minutes}`)
               .layoutWeight(1)
-              .height(32)
+              .height(AppControl.MIN_TOUCH)
               .fontSize(AppTypography.CAPTION)
               .fontColor(this.plannedMinutes === `${minutes}` ?
                 $r('app.color.brand_on_primary') : $r('app.color.text_secondary'))

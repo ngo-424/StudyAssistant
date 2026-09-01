@@ -1,4 +1,4 @@
-import { AppRadius, AppSpacing, AppTypography } from '../../../../core/design/DesignTokens'
+import { AppControl, AppRadius, AppSpacing, AppTypography } from '../../../../core/design/DesignTokens'
 import { TaskCategory } from '../../../../domain/model/StudyModels'
 import { CategoryColor } from '../../domain/CategoryColor'
 
@@ -20,7 +20,7 @@ struct CategoryChip {
         .fontWeight(this.categoryKey === this.selectedId ? FontWeight.Bold : FontWeight.Medium)
         .fontColor(this.categoryKey === this.selectedId ? $r('app.color.brand_primary') : $r('app.color.text_secondary'))
     }
-    .height(36)
+    .height(AppControl.MIN_TOUCH)
     .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
     .backgroundColor(this.categoryKey === this.selectedId ? $r('app.color.brand_container') : $r('app.color.surface_primary'))
     .border({ width: 1, color: this.categoryKey === this.selectedId ? $r('app.color.brand_primary') : $r('app.color.border_subtle') })

@@ -49,6 +49,10 @@
       "value": "开始专注"
     },
     {
+      "name": "focus_starting",
+      "value": "正在开始"
+    },
+    {
       "name": "focus_module_hint",
       "value": "计时能力将在专注模块启用"
     },
@@ -174,7 +178,7 @@
     },
     {
       "name": "tasks_create_short",
-      "value": "+ 新建"
+      "value": "新建任务"
     },
     {
       "name": "tasks_filter_todo",
@@ -262,7 +266,7 @@
     },
     {
       "name": "category_create_action",
-      "value": "+ 新建类别"
+      "value": "新建类别"
     },
     {
       "name": "category_empty",
@@ -278,7 +282,7 @@
     },
     {
       "name": "category_custom_color",
-      "value": "自定义颜色"
+      "value": "颜色值"
     },
     {
       "name": "category_delete_title",
@@ -287,6 +291,178 @@
     {
       "name": "category_delete_message",
       "value": "任务不会被删除，暂时会显示为未分类；恢复类别后关联也会恢复。"
+    },
+    {
+      "name": "app_brand_name",
+      "value": "时芽"
+    },
+    {
+      "name": "brand_tagline",
+      "value": "专注当下，静待成长"
+    },
+    {
+      "name": "common_back",
+      "value": "返回"
+    },
+    {
+      "name": "common_retry",
+      "value": "重试"
+    },
+    {
+      "name": "common_saving",
+      "value": "正在保存"
+    },
+    {
+      "name": "common_saved",
+      "value": "已保存"
+    },
+    {
+      "name": "settings_account",
+      "value": "账号"
+    },
+    {
+      "name": "settings_account_desc",
+      "value": "登录、退出和管理本机数据"
+    },
+    {
+      "name": "settings_focus_desc",
+      "value": "调整专注与休息节奏"
+    },
+    {
+      "name": "settings_sync",
+      "value": "同步"
+    },
+    {
+      "name": "settings_sync_desc",
+      "value": "在登录设备之间保持数据一致"
+    },
+    {
+      "name": "settings_data_privacy",
+      "value": "数据与隐私"
+    },
+    {
+      "name": "settings_data_privacy_desc",
+      "value": "导出数据，查看隐私政策和用户协议"
+    },
+    {
+      "name": "settings_focus_effect_hint",
+      "value": "修改会从下一段计时开始生效"
+    },
+    {
+      "name": "settings_focus_duration",
+      "value": "专注时长"
+    },
+    {
+      "name": "settings_short_break",
+      "value": "短休息"
+    },
+    {
+      "name": "settings_long_break",
+      "value": "长休息"
+    },
+    {
+      "name": "settings_long_break_interval",
+      "value": "长休息间隔"
+    },
+    {
+      "name": "settings_long_break_interval_desc",
+      "value": "完成几轮专注后进入长休息"
+    },
+    {
+      "name": "settings_auto_break",
+      "value": "自动开始休息"
+    },
+    {
+      "name": "settings_auto_break_desc",
+      "value": "专注正常完成后直接进入休息"
+    },
+    {
+      "name": "settings_auto_focus",
+      "value": "自动开始专注"
+    },
+    {
+      "name": "settings_auto_focus_desc",
+      "value": "休息正常结束后直接进入下一轮"
+    },
+    {
+      "name": "settings_save_focus",
+      "value": "保存专注设置"
+    },
+    {
+      "name": "settings_load_error",
+      "value": "设置暂时没有读取成功，请重试"
+    },
+    {
+      "name": "settings_range_error",
+      "value": "请检查时长设置后再保存"
+    },
+    {
+      "name": "settings_save_error",
+      "value": "设置暂时没有保存成功，请重试"
+    },
+    {
+      "name": "settings_greeting",
+      "value": "慢慢来，每一次专注都算数"
+    },
+    {
+      "name": "settings_focus_range",
+      "value": "每轮 1–480 分钟"
+    },
+    {
+      "name": "settings_short_break_range",
+      "value": "每轮 1–120 分钟"
+    },
+    {
+      "name": "settings_long_break_range",
+      "value": "每轮 1–180 分钟"
+    },
+    {
+      "name": "common_close",
+      "value": "关闭"
+    },
+    {
+      "name": "task_saving",
+      "value": "正在保存任务"
+    },
+    {
+      "name": "task_saved",
+      "value": "任务已保存"
+    },
+    {
+      "name": "task_completed",
+      "value": "任务已完成"
+    },
+    {
+      "name": "task_reopened",
+      "value": "任务已恢复为进行中"
+    },
+    {
+      "name": "task_moved_to_trash",
+      "value": "任务已移到回收站"
+    },
+    {
+      "name": "task_restored",
+      "value": "任务已恢复"
+    },
+    {
+      "name": "category_saving",
+      "value": "正在保存类别"
+    },
+    {
+      "name": "category_saved",
+      "value": "类别已保存"
+    },
+    {
+      "name": "category_deleted",
+      "value": "类别已删除，原任务仍会保留"
+    },
+    {
+      "name": "category_restored",
+      "value": "类别已恢复"
+    },
+    {
+      "name": "category_custom_color_show",
+      "value": "自定义颜色"
     }
   ]
 }

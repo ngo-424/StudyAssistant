@@ -1,7 +1,8 @@
 import { ActiveTimerSnapshot } from '../../../domain/model/StudyModels'
 
 export const CONTINUATION_PROTOCOL_VERSION: number = 1
-export const CONTINUATION_APP_VERSION_CODE: number = 1000000
+export const CONTINUATION_PREVIOUS_APP_VERSION_CODE: number = 1000000
+export const CONTINUATION_APP_VERSION_CODE: number = 1010000
 export const CONTINUATION_PAYLOAD_KEY: string = 'studyAssistantContinuationV1'
 export const CONTINUATION_MAX_PAYLOAD_BYTES: number = 96 * 1024
 

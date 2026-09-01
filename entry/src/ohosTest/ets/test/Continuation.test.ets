@@ -6,6 +6,7 @@ import {
 } from '../../../main/ets/domain/model/StudyModels'
 import {
   CONTINUATION_APP_VERSION_CODE,
+  CONTINUATION_PREVIOUS_APP_VERSION_CODE,
   CONTINUATION_PROTOCOL_VERSION,
   ContinuationEnvelope
 } from '../../../main/ets/features/continuation/domain/ContinuationModels'
@@ -63,6 +64,15 @@ export default function continuationTest(): void {
     it('rejectsAnIncompatibleTargetVersion', 0, () => {
       expect(ContinuationRules.compatibleTargetVersion('2.0.0')).assertFalse()
       expect(ContinuationRules.compatibleTargetVersion(CONTINUATION_APP_VERSION_CODE)).assertTrue()
+      expect(ContinuationRules.compatibleTargetVersion('1.1.0')).assertTrue()
+      expect(ContinuationRules.compatibleTargetVersion(CONTINUATION_PREVIOUS_APP_VERSION_CODE)).assertTrue()
+      expect(ContinuationRules.compatibleTargetVersion('1.0.0')).assertTrue()
+    })
+
+    it('acceptsAOnePointZeroEnvelopeInOnePointOne', 0, () => {
+      const previous: ContinuationEnvelope = envelope()
+      previous.appVersionCode = CONTINUATION_PREVIOUS_APP_VERSION_CODE
+      expect(ContinuationRules.decode(ContinuationRules.encode(previous)) !== null).assertTrue()
     })
   })
 }

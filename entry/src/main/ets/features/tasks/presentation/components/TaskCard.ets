@@ -1,4 +1,4 @@
-import { AppRadius, AppSpacing, AppTypography } from '../../../../core/design/DesignTokens'
+import { AppControl, AppRadius, AppSpacing, AppTypography } from '../../../../core/design/DesignTokens'
 import { StudyTask, TaskStatus } from '../../../../domain/model/StudyModels'
 import { CategoryColor } from '../../domain/CategoryColor'
 import { TaskPresentation } from '../TaskPresentation'
@@ -9,6 +9,7 @@ export struct TaskCard {
   @Prop categoryName: string = '未分类'
   @Prop colorSeed: string = CategoryColor.NEUTRAL
   @Prop deleted: boolean = false
+  @Prop working: boolean = false
   onToggle: (task: StudyTask) => void = () => {}
   onEdit: (task: StudyTask) => void = () => {}
   onDelete: (task: StudyTask) => void = () => {}
@@ -25,17 +26,22 @@ export struct TaskCard {
       Column({ space: AppSpacing.MD }) {
         Row({ space: AppSpacing.MD }) {
           if (!this.deleted) {
-            Button(this.task.status === TaskStatus.COMPLETED ? '✓' : '')
-              .width(36)
-              .height(36)
-              .fontSize(17)
-              .fontWeight(FontWeight.Bold)
-              .fontColor($r('app.color.brand_on_primary'))
+            Button() {
+              if (this.task.status === TaskStatus.COMPLETED) {
+                SymbolGlyph($r('sys.symbol.checkmark'))
+                  .fontSize(18)
+                  .fontColor([$r('app.color.brand_on_primary')])
+              }
+            }
+              .width(AppControl.MIN_TOUCH)
+              .height(AppControl.MIN_TOUCH)
               .backgroundColor(this.task.status === TaskStatus.COMPLETED ?
                 $r('app.color.success') : Color.Transparent)
               .border({ width: 2, color: this.task.status === TaskStatus.COMPLETED ?
                 $r('app.color.success') : $r('app.color.border_strong') })
               .borderRadius(AppRadius.PILL)
+              .enabled(!this.working)
+              .accessibilityText(this.task.status === TaskStatus.COMPLETED ? '标记为进行中' : '标记为已完成')
               .onClick(() => this.onToggle(this.task))
           }
 
@@ -80,26 +86,29 @@ export struct TaskCard {
           Blank()
           if (this.deleted) {
             Button($r('app.string.common_restore'))
-              .height(34)
+              .height(AppControl.MIN_TOUCH)
               .fontSize(AppTypography.CAPTION)
               .fontColor($r('app.color.brand_primary'))
               .backgroundColor($r('app.color.brand_container'))
               .borderRadius(AppRadius.SM)
+              .enabled(!this.working)
               .onClick(() => this.onRestore(this.task))
           } else {
             Button($r('app.string.common_edit'))
-              .height(34)
+              .height(AppControl.MIN_TOUCH)
               .fontSize(AppTypography.CAPTION)
               .fontColor($r('app.color.text_secondary'))
               .backgroundColor($r('app.color.surface_secondary'))
               .borderRadius(AppRadius.SM)
+              .enabled(!this.working)
               .onClick(() => this.onEdit(this.task))
             Button($r('app.string.common_delete'))
-              .height(34)
+              .height(AppControl.MIN_TOUCH)
               .fontSize(AppTypography.CAPTION)
               .fontColor($r('app.color.danger'))
               .backgroundColor($r('app.color.danger_container'))
               .borderRadius(AppRadius.SM)
+              .enabled(!this.working)
               .onClick(() => this.onDelete(this.task))
           }
         }

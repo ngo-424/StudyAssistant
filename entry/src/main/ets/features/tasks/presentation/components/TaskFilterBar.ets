@@ -1,4 +1,4 @@
-import { AppRadius, AppSpacing, AppTypography } from '../../../../core/design/DesignTokens'
+import { AppControl, AppRadius, AppSpacing, AppTypography } from '../../../../core/design/DesignTokens'
 import { TaskListFilter } from '../TaskPresentation'
 
 @Component
@@ -21,7 +21,7 @@ struct FilterButton {
         .fontColor(this.selected === this.value ? $r('app.color.brand_on_primary') : $r('app.color.text_secondary'))
     }
       .layoutWeight(1)
-      .height(40)
+      .height(AppControl.MIN_TOUCH)
       .backgroundColor(this.selected === this.value ? $r('app.color.brand_primary') : Color.Transparent)
       .borderRadius(AppRadius.SM)
       .justifyContent(FlexAlign.Center)

@@ -1,11 +1,11 @@
 import { AppTab } from '../../app/AppTab'
-import { AppRadius, AppSpacing, AppTypography } from '../../core/design/DesignTokens'
+import { AppControl, AppRadius, AppSpacing, AppTypography } from '../../core/design/DesignTokens'
 
 @Component
 struct NavigationButton {
   @Prop tab: AppTab
   @Prop selectedTab: AppTab
-  @Prop icon: string
+  @Prop symbol: Resource
   @Prop label: ResourceStr
   @Prop compact: boolean = false
   onSelect: (tab: AppTab) => void = () => {}
@@ -13,10 +13,10 @@ struct NavigationButton {
   build() {
     if (this.compact) {
       Column({ space: AppSpacing.XS }) {
-        Text(this.icon)
-          .fontSize(19)
-          .fontWeight(FontWeight.Medium)
-          .fontColor(this.selectedTab === this.tab ? $r('app.color.brand_primary') : $r('app.color.text_secondary'))
+        SymbolGlyph(this.symbol)
+          .fontSize(21)
+          .fontColor([this.selectedTab === this.tab ?
+            $r('app.color.brand_primary') : $r('app.color.text_secondary')])
 
         Text(this.label)
           .fontSize(AppTypography.CAPTION)
@@ -24,18 +24,18 @@ struct NavigationButton {
           .fontColor(this.selectedTab === this.tab ? $r('app.color.brand_primary') : $r('app.color.text_secondary'))
       }
       .width(64)
-      .height(54)
+      .height(56)
       .justifyContent(FlexAlign.Center)
       .backgroundColor(this.selectedTab === this.tab ? $r('app.color.brand_container') : Color.Transparent)
       .borderRadius(AppRadius.MD)
       .onClick(() => this.onSelect(this.tab))
     } else {
       Row({ space: AppSpacing.MD }) {
-        Text(this.icon)
+        SymbolGlyph(this.symbol)
           .width(28)
-          .fontSize(20)
-          .textAlign(TextAlign.Center)
-          .fontColor(this.selectedTab === this.tab ? $r('app.color.brand_primary') : $r('app.color.text_secondary'))
+          .fontSize(22)
+          .fontColor([this.selectedTab === this.tab ?
+            $r('app.color.brand_primary') : $r('app.color.text_secondary')])
 
         Text(this.label)
           .fontSize(AppTypography.BODY)
@@ -43,7 +43,7 @@ struct NavigationButton {
           .fontColor(this.selectedTab === this.tab ? $r('app.color.brand_primary') : $r('app.color.text_secondary'))
       }
       .width('100%')
-      .height(52)
+      .height(AppControl.PRIMARY_HEIGHT)
       .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
       .backgroundColor(this.selectedTab === this.tab ? $r('app.color.brand_container') : Color.Transparent)
       .borderRadius(AppRadius.MD)
@@ -62,17 +62,15 @@ export struct AppNavigation {
     if (this.isWide) {
       Column({ space: AppSpacing.SM }) {
         Row({ space: AppSpacing.SM }) {
-          Text('S')
+          SymbolGlyph($r('sys.symbol.leaf_fill'))
             .width(36)
             .height(36)
-            .fontSize(18)
-            .fontWeight(FontWeight.Bold)
-            .fontColor($r('app.color.brand_on_primary'))
-            .textAlign(TextAlign.Center)
+            .fontSize(20)
+            .fontColor([$r('app.color.brand_on_primary')])
             .backgroundColor($r('app.color.brand_primary'))
             .borderRadius(AppRadius.SM)
 
-          Text('StudyAssistant')
+          Text($r('app.string.app_brand_name'))
             .fontSize(17)
             .fontWeight(FontWeight.Bold)
             .fontColor($r('app.color.text_primary'))
@@ -83,36 +81,36 @@ export struct AppNavigation {
         NavigationButton({
           tab: AppTab.FOCUS,
           selectedTab: this.selectedTab,
-          icon: '◎',
+          symbol: $r('sys.symbol.timer'),
           label: $r('app.string.tab_focus'),
           onSelect: this.onSelect
         })
         NavigationButton({
           tab: AppTab.INSIGHTS,
           selectedTab: this.selectedTab,
-          icon: '▥',
+          symbol: $r('sys.symbol.waveform'),
           label: $r('app.string.tab_insights'),
           onSelect: this.onSelect
         })
         NavigationButton({
           tab: AppTab.TASKS,
           selectedTab: this.selectedTab,
-          icon: '✓',
+          symbol: $r('sys.symbol.list_checkmask'),
           label: $r('app.string.tab_tasks'),
           onSelect: this.onSelect
         })
         NavigationButton({
           tab: AppTab.SETTINGS,
           selectedTab: this.selectedTab,
-          icon: '○',
+          symbol: $r('sys.symbol.person_crop_circle_fill'),
           label: $r('app.string.tab_settings'),
           onSelect: this.onSelect
         })
 
         Blank()
 
-        Text('v1 · LOCAL FIRST')
-          .fontSize(10)
+        Text($r('app.string.brand_tagline'))
+          .fontSize(AppTypography.CAPTION)
           .fontColor($r('app.color.text_tertiary'))
       }
       .width(224)
@@ -126,7 +124,7 @@ export struct AppNavigation {
         NavigationButton({
           tab: AppTab.FOCUS,
           selectedTab: this.selectedTab,
-          icon: '◎',
+          symbol: $r('sys.symbol.timer'),
           label: $r('app.string.tab_focus'),
           compact: true,
           onSelect: this.onSelect
@@ -134,7 +132,7 @@ export struct AppNavigation {
         NavigationButton({
           tab: AppTab.INSIGHTS,
           selectedTab: this.selectedTab,
-          icon: '▥',
+          symbol: $r('sys.symbol.waveform'),
           label: $r('app.string.tab_insights'),
           compact: true,
           onSelect: this.onSelect
@@ -142,7 +140,7 @@ export struct AppNavigation {
         NavigationButton({
           tab: AppTab.TASKS,
           selectedTab: this.selectedTab,
-          icon: '✓',
+          symbol: $r('sys.symbol.list_checkmask'),
           label: $r('app.string.tab_tasks'),
           compact: true,
           onSelect: this.onSelect
@@ -150,7 +148,7 @@ export struct AppNavigation {
         NavigationButton({
           tab: AppTab.SETTINGS,
           selectedTab: this.selectedTab,
-          icon: '○',
+          symbol: $r('sys.symbol.person_crop_circle_fill'),
           label: $r('app.string.tab_settings'),
           compact: true,
           onSelect: this.onSelect

@@ -1,4 +1,4 @@
-import { AppRadius, AppSpacing, AppTypography } from '../../../../core/design/DesignTokens'
+import { AppControl, AppRadius, AppSpacing, AppTypography } from '../../../../core/design/DesignTokens'
 import { TaskCategory } from '../../../../domain/model/StudyModels'
 import { CategoryColor } from '../../domain/CategoryColor'
 
@@ -6,6 +6,7 @@ import { CategoryColor } from '../../domain/CategoryColor'
 struct CategoryRow {
   @Prop category: TaskCategory
   @Prop deleted: boolean = false
+  @Prop working: boolean = false
   onEdit: (category: TaskCategory) => void = () => {}
   onDelete: (category: TaskCategory) => void = () => {}
   onRestore: (category: TaskCategory) => void = () => {}
@@ -21,26 +22,29 @@ struct CategoryRow {
         .fontColor(this.deleted ? $r('app.color.text_tertiary') : $r('app.color.text_primary'))
       if (this.deleted) {
         Button($r('app.string.common_restore'))
-          .height(32)
+          .height(AppControl.MIN_TOUCH)
           .fontSize(AppTypography.CAPTION)
           .fontColor($r('app.color.brand_primary'))
           .backgroundColor($r('app.color.brand_container'))
           .borderRadius(AppRadius.SM)
+          .enabled(!this.working)
           .onClick(() => this.onRestore(this.category))
       } else {
         Button($r('app.string.common_edit'))
-          .height(32)
+          .height(AppControl.MIN_TOUCH)
           .fontSize(AppTypography.CAPTION)
           .fontColor($r('app.color.text_secondary'))
           .backgroundColor($r('app.color.surface_secondary'))
           .borderRadius(AppRadius.SM)
+          .enabled(!this.working)
           .onClick(() => this.onEdit(this.category))
         Button($r('app.string.common_delete'))
-          .height(32)
+          .height(AppControl.MIN_TOUCH)
           .fontSize(AppTypography.CAPTION)
           .fontColor($r('app.color.danger'))
           .backgroundColor($r('app.color.danger_container'))
           .borderRadius(AppRadius.SM)
+          .enabled(!this.working)
           .onClick(() => this.onDelete(this.category))
       }
     }
@@ -55,6 +59,9 @@ export struct CategoryManager {
   @Prop deletedCategories: TaskCategory[] = []
   @Prop editing: boolean = false
   @Prop editingExisting: boolean = false
+  @Prop saving: boolean = false
+  @Prop workingItemId: string = ''
+  @State customColorExpanded: boolean = false
   @Link categoryName: string
   @Link colorSeed: string
   onStartCreate: () => void = () => {}
@@ -88,13 +95,17 @@ export struct CategoryManager {
         }
         .layoutWeight(1)
         .alignItems(HorizontalAlign.Start)
-        Button('×')
-          .width(40)
-          .height(40)
-          .fontSize(22)
-          .fontColor($r('app.color.text_secondary'))
+        Button() {
+          SymbolGlyph($r('sys.symbol.xmark'))
+            .fontSize(20)
+            .fontColor([$r('app.color.text_secondary')])
+        }
+          .width(AppControl.MIN_TOUCH)
+          .height(AppControl.MIN_TOUCH)
           .backgroundColor($r('app.color.surface_secondary'))
           .borderRadius(AppRadius.PILL)
+          .enabled(!this.saving)
+          .accessibilityText($r('app.string.common_close'))
           .onClick(this.onClose)
       }
       .width('100%')
@@ -104,7 +115,7 @@ export struct CategoryManager {
       } else {
         Button($r('app.string.category_create_action'))
           .width('100%')
-          .height(44)
+          .height(AppControl.PRIMARY_HEIGHT)
           .fontWeight(FontWeight.Bold)
           .fontColor($r('app.color.brand_primary'))
           .backgroundColor($r('app.color.brand_container'))
@@ -124,6 +135,7 @@ export struct CategoryManager {
           ForEach(this.activeCategories, (category: TaskCategory) => {
             CategoryRow({
               category: category,
+              working: this.workingItemId === category.id,
               onEdit: this.onEdit,
               onDelete: this.onDelete,
               onRestore: this.onRestore
@@ -148,6 +160,7 @@ export struct CategoryManager {
               CategoryRow({
                 category: category,
                 deleted: true,
+                working: this.workingItemId === category.id,
                 onEdit: this.onEdit,
                 onDelete: this.onDelete,
                 onRestore: this.onRestore
@@ -197,48 +210,65 @@ export struct CategoryManager {
 
       Row({ space: AppSpacing.SM }) {
         ForEach(CategoryColor.PRESETS, (color: string) => {
-          Button(this.normalizedColor() === color ? '✓' : '')
+          Button() {
+            if (this.normalizedColor() === color) {
+              SymbolGlyph($r('sys.symbol.checkmark'))
+                .fontSize(18)
+                .fontColor([CategoryColor.foregroundFor(color)])
+            }
+          }
             .layoutWeight(1)
-            .height(36)
-            .fontSize(AppTypography.CAPTION)
-            .fontColor(CategoryColor.foregroundFor(color))
+            .height(AppControl.MIN_TOUCH)
             .backgroundColor(color)
             .borderRadius(AppRadius.SM)
+            .accessibilityText('选择这个颜色')
             .onClick(() => this.colorSeed = color)
         }, (color: string) => color)
       }
       .width('100%')
 
-      Row({ space: AppSpacing.SM }) {
-        Text($r('app.string.category_custom_color'))
-          .fontSize(AppTypography.CAPTION)
-          .fontColor($r('app.color.text_secondary'))
-        TextInput({ text: this.colorSeed, placeholder: '#536F9E' })
-          .layoutWeight(1)
-          .height(42)
-          .fontColor($r('app.color.text_primary'))
-          .backgroundColor($r('app.color.surface_primary'))
-          .borderRadius(AppRadius.SM)
-          .maxLength(7)
-          .onChange((value: string) => this.colorSeed = value)
+      Button($r('app.string.category_custom_color_show'))
+        .width('100%')
+        .height(AppControl.MIN_TOUCH)
+        .fontColor($r('app.color.text_secondary'))
+        .backgroundColor($r('app.color.surface_primary'))
+        .borderRadius(AppRadius.SM)
+        .onClick(() => this.customColorExpanded = !this.customColorExpanded)
+
+      if (this.customColorExpanded) {
+        Row({ space: AppSpacing.SM }) {
+          Text($r('app.string.category_custom_color'))
+            .fontSize(AppTypography.CAPTION)
+            .fontColor($r('app.color.text_secondary'))
+          TextInput({ text: this.colorSeed, placeholder: '#3F704F' })
+            .layoutWeight(1)
+            .height(AppControl.MIN_TOUCH)
+            .fontColor($r('app.color.text_primary'))
+            .backgroundColor($r('app.color.surface_primary'))
+            .borderRadius(AppRadius.SM)
+            .maxLength(7)
+            .onChange((value: string) => this.colorSeed = value)
+        }
+        .width('100%')
       }
-      .width('100%')
 
       Row({ space: AppSpacing.SM }) {
         Blank()
         Button($r('app.string.common_cancel'))
-          .height(38)
+          .height(AppControl.MIN_TOUCH)
           .fontColor($r('app.color.text_secondary'))
           .backgroundColor($r('app.color.surface_primary'))
           .borderRadius(AppRadius.SM)
+          .enabled(!this.saving)
           .onClick(this.onCancelEdit)
-        Button(this.editingExisting ? $r('app.string.common_save') : $r('app.string.common_add'))
-          .height(38)
+        Button(this.saving ? $r('app.string.category_saving') :
+          (this.editingExisting ? $r('app.string.common_save') : $r('app.string.common_add')))
+          .height(AppControl.MIN_TOUCH)
           .fontWeight(FontWeight.Bold)
           .fontColor(CategoryColor.foregroundFor(this.normalizedColor()))
           .backgroundColor(this.normalizedColor())
           .borderRadius(AppRadius.SM)
-          .enabled(this.canSave())
+          .enabled(this.canSave() && !this.saving)
           .onClick(this.onSave)
       }
       .width('100%')

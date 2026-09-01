@@ -1,6 +1,8 @@
 import { AppError } from '../../../core/error/AppError'
-import { AppBreakpoint, AppRadius, AppSpacing, AppTypography } from '../../../core/design/DesignTokens'
+import { HapticFeedbackService } from '../../../core/haptics/HapticFeedbackService'
+import { AppBreakpoint, AppControl, AppRadius, AppSpacing, AppTypography } from '../../../core/design/DesignTokens'
 import { StudyTask, TaskCategory, TaskStatus } from '../../../domain/model/StudyModels'
+import { AppStatusBanner, MessageTone } from '../../../shared/components/AppFeedback'
 import { CategoryColor } from '../domain/CategoryColor'
 import { CategoryDraft, TaskDraft } from '../domain/TaskDrafts'
 import { CategoryManager } from './components/CategoryManager'
@@ -19,6 +21,8 @@ export struct TasksPage {
   @State loading: boolean = true
   @State saving: boolean = false
   @State errorMessage: string = ''
+  @State successMessage: string = ''
+  @State workingItemId: string = ''
   @State selectedFilter: TaskListFilter = TaskListFilter.TODO
   @State selectedCategoryId: string = 'all'
   @State showTaskEditor: boolean = false
@@ -39,8 +43,10 @@ export struct TasksPage {
     this.reload()
   }
 
-  private async reload(): Promise<void> {
-    this.loading = true
+  private async reload(showLoading: boolean = true): Promise<void> {
+    if (showLoading) {
+      this.loading = true
+    }
     try {
       const data: TasksScreenData = await this.viewModel.load()
       this.tasks = data.tasks
@@ -53,11 +59,14 @@ export struct TasksPage {
     } catch (error) {
       this.errorMessage = this.readableError(error)
     } finally {
-      this.loading = false
+      if (showLoading) {
+        this.loading = false
+      }
     }
   }
 
   private startTaskCreate(): void {
+    this.successMessage = ''
     this.editingTaskId = ''
     this.taskTitle = ''
     this.taskNotes = ''
@@ -68,6 +77,7 @@ export struct TasksPage {
   }
 
   private startTaskEdit(task: StudyTask): void {
+    this.successMessage = ''
     this.editingTaskId = task.id
     this.taskTitle = task.title
     this.taskNotes = task.notes
@@ -100,7 +110,9 @@ export struct TasksPage {
     try {
       await this.viewModel.saveTask(draft, existing)
       this.cancelTaskEdit()
-      await this.reload()
+      await this.reload(false)
+      this.successMessage = '任务已保存'
+      await HapticFeedbackService.success()
     } catch (error) {
       this.errorMessage = this.readableError(error)
     } finally {
@@ -109,11 +121,22 @@ export struct TasksPage {
   }
 
   private async toggleTask(task: StudyTask): Promise<void> {
+    if (this.workingItemId.length > 0) {
+      return
+    }
+    this.workingItemId = task.id
+    const completing: boolean = task.status !== TaskStatus.COMPLETED
     try {
-      await this.viewModel.setTaskCompleted(task, task.status !== TaskStatus.COMPLETED)
-      await this.reload()
+      await this.viewModel.setTaskCompleted(task, completing)
+      await this.reload(false)
+      this.successMessage = completing ? '任务已完成' : '任务已恢复为进行中'
+      if (completing) {
+        await HapticFeedbackService.success()
+      }
     } catch (error) {
       this.errorMessage = this.readableError(error)
+    } finally {
+      this.workingItemId = ''
     }
   }
 
@@ -134,23 +157,38 @@ export struct TasksPage {
   }
 
   private async deleteTask(task: StudyTask): Promise<void> {
+    if (this.workingItemId.length > 0) {
+      return
+    }
+    this.workingItemId = task.id
     try {
       await this.viewModel.deleteTask(task)
       if (this.editingTaskId === task.id) {
         this.cancelTaskEdit()
       }
-      await this.reload()
+      await this.reload(false)
+      this.successMessage = '任务已移到回收站'
+      await HapticFeedbackService.success()
     } catch (error) {
       this.errorMessage = this.readableError(error)
+    } finally {
+      this.workingItemId = ''
     }
   }
 
   private async restoreTask(task: StudyTask): Promise<void> {
+    if (this.workingItemId.length > 0) {
+      return
+    }
+    this.workingItemId = task.id
     try {
       await this.viewModel.restoreTask(task)
-      await this.reload()
+      await this.reload(false)
+      this.successMessage = '任务已恢复'
     } catch (error) {
       this.errorMessage = this.readableError(error)
+    } finally {
+      this.workingItemId = ''
     }
   }
 
@@ -187,7 +225,9 @@ export struct TasksPage {
     try {
       await this.viewModel.saveCategory(draft, this.findCategory(this.editingCategoryId))
       this.cancelCategoryEdit()
-      await this.reload()
+      await this.reload(false)
+      this.successMessage = '类别已保存'
+      await HapticFeedbackService.success()
     } catch (error) {
       this.errorMessage = this.readableError(error)
     } finally {
@@ -212,23 +252,38 @@ export struct TasksPage {
   }
 
   private async deleteCategory(category: TaskCategory): Promise<void> {
+    if (this.workingItemId.length > 0) {
+      return
+    }
+    this.workingItemId = category.id
     try {
       await this.viewModel.deleteCategory(category)
       if (this.editingCategoryId === category.id) {
         this.cancelCategoryEdit()
       }
-      await this.reload()
+      await this.reload(false)
+      this.successMessage = '类别已删除，原任务仍会保留'
+      await HapticFeedbackService.success()
     } catch (error) {
       this.errorMessage = this.readableError(error)
+    } finally {
+      this.workingItemId = ''
     }
   }
 
   private async restoreCategory(category: TaskCategory): Promise<void> {
+    if (this.workingItemId.length > 0) {
+      return
+    }
+    this.workingItemId = category.id
     try {
       await this.viewModel.restoreCategory(category)
-      await this.reload()
+      await this.reload(false)
+      this.successMessage = '类别已恢复'
     } catch (error) {
       this.errorMessage = this.readableError(error)
+    } finally {
+      this.workingItemId = ''
     }
   }
 
@@ -296,7 +351,7 @@ export struct TasksPage {
           .alignItems(HorizontalAlign.Start)
 
           Button($r('app.string.category_manage_action'))
-            .height(44)
+            .height(AppControl.MIN_TOUCH)
             .fontSize(AppTypography.CAPTION)
             .fontColor($r('app.color.text_secondary'))
             .backgroundColor($r('app.color.surface_primary'))
@@ -304,7 +359,7 @@ export struct TasksPage {
             .borderRadius(AppRadius.MD)
             .onClick(() => this.openCategoryManager())
           Button($r('app.string.tasks_create_short'))
-            .height(44)
+            .height(AppControl.MIN_TOUCH)
             .fontWeight(FontWeight.Bold)
             .fontColor($r('app.color.brand_on_primary'))
             .backgroundColor($r('app.color.brand_primary'))
@@ -314,31 +369,16 @@ export struct TasksPage {
         .width('100%')
 
         if (this.errorMessage.length > 0) {
-          Row({ space: AppSpacing.SM }) {
-            Text('!')
-              .fontWeight(FontWeight.Bold)
-              .fontColor($r('app.color.danger'))
-            Text(this.errorMessage)
-              .layoutWeight(1)
-              .fontSize(AppTypography.CAPTION)
-              .fontColor($r('app.color.danger'))
-            Button('×')
-              .width(32)
-              .height(32)
-              .fontColor($r('app.color.danger'))
-              .backgroundColor(Color.Transparent)
-              .onClick(() => this.errorMessage = '')
-          }
-          .width('100%')
-          .padding(AppSpacing.MD)
-          .backgroundColor($r('app.color.danger_container'))
-          .borderRadius(AppRadius.MD)
+          AppStatusBanner({ message: this.errorMessage, tone: MessageTone.ERROR })
+        } else if (this.successMessage.length > 0) {
+          AppStatusBanner({ message: this.successMessage, tone: MessageTone.SUCCESS })
         }
 
         if (this.showTaskEditor) {
           TaskEditor({
             isWide: this.isWide,
             isEditing: this.editingTaskId.length > 0,
+            saving: this.saving,
             categories: this.activeCategories(),
             title: $taskTitle,
             notes: $taskNotes,
@@ -356,6 +396,8 @@ export struct TasksPage {
             deletedCategories: this.deletedCategories(),
             editing: this.editingCategory,
             editingExisting: this.editingCategoryId.length > 0,
+            saving: this.saving,
+            workingItemId: this.workingItemId,
             categoryName: $categoryName,
             colorSeed: $categoryColor,
             onStartCreate: () => this.startCategoryCreate(),
@@ -405,6 +447,7 @@ export struct TasksPage {
                 categoryName: TaskPresentation.categoryFor(task, this.categories)?.name ?? '未分类',
                 colorSeed: TaskPresentation.categoryFor(task, this.categories)?.colorSeed ?? CategoryColor.NEUTRAL,
                 deleted: task.deletedAt !== null,
+                working: this.workingItemId === task.id,
                 onToggle: (selected: StudyTask) => this.toggleTask(selected),
                 onEdit: (selected: StudyTask) => this.startTaskEdit(selected),
                 onDelete: (selected: StudyTask) => this.confirmTaskDelete(selected),
@@ -427,14 +470,10 @@ export struct TasksPage {
   @Builder
   private EmptyState() {
     Column({ space: AppSpacing.MD }) {
-      Text(this.selectedFilter === TaskListFilter.DELETED ? '♻' : '✓')
-        .width(56)
-        .height(56)
-        .fontSize(24)
-        .fontColor($r('app.color.brand_primary'))
-        .textAlign(TextAlign.Center)
-        .backgroundColor($r('app.color.brand_container'))
-        .borderRadius(AppRadius.MD)
+      SymbolGlyph(this.selectedFilter === TaskListFilter.DELETED ?
+        $r('sys.symbol.trash') : $r('sys.symbol.checkmark_circle'))
+        .fontSize(36)
+        .fontColor([$r('app.color.brand_primary')])
       Text(this.selectedFilter === TaskListFilter.TODO ?
         $r('app.string.tasks_empty_title') : $r('app.string.tasks_empty_filtered_title'))
         .fontSize(20)
@@ -447,6 +486,7 @@ export struct TasksPage {
         .textAlign(TextAlign.Center)
       if (this.selectedFilter === TaskListFilter.TODO) {
         Button($r('app.string.tasks_create'))
+          .height(AppControl.MIN_TOUCH)
           .margin({ top: AppSpacing.SM })
           .fontColor($r('app.color.brand_primary'))
           .backgroundColor($r('app.color.brand_container'))
