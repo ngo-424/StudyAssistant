@@ -214,7 +214,7 @@ export struct TaskEditor {
         Row({ space: AppSpacing.SM }) {
           Button(this.dateLabel())
             .layoutWeight(1)
-            .height(44)
+            .height(AppControl.MIN_TOUCH)
             .fontSize(AppTypography.CAPTION)
             .fontColor($r('app.color.text_primary'))
             .backgroundColor($r('app.color.surface_secondary'))
@@ -222,7 +222,7 @@ export struct TaskEditor {
             .onClick(() => this.selectDate())
           if (this.dueAt > 0) {
             Button($r('app.string.common_clear'))
-              .height(44)
+              .height(AppControl.MIN_TOUCH)
               .fontSize(AppTypography.CAPTION)
               .fontColor($r('app.color.text_secondary'))
               .backgroundColor(Color.Transparent)

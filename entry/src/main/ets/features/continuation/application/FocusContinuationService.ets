@@ -120,7 +120,7 @@ export class FocusContinuationService implements TimerControlGuard {
         flowId: envelope.snapshot.flowId,
         phaseSessionId: envelope.snapshot.phaseSessionId,
         targetDeviceId: session.deviceId,
-        targetVersion: CONTINUATION_PROTOCOL_VERSION
+        targetVersion: CONTINUATION_APP_VERSION_CODE
       }
       await this.api.claim(session.accessToken, body)
       envelope.snapshot.profileId = profileId
@@ -217,7 +217,7 @@ export class FocusContinuationService implements TimerControlGuard {
       flowId: flowId,
       phaseSessionId: phaseSessionId,
       sourceDeviceId: session.deviceId,
-      sourceVersion: CONTINUATION_PROTOCOL_VERSION
+      sourceVersion: CONTINUATION_APP_VERSION_CODE
     }
     const result: PrepareContinuationResult = await this.api.prepare(session.accessToken, body)
     const record: ContinuationControlRecord = {

@@ -6,7 +6,7 @@ export interface CategoryPalette {
 }
 
 export class CategoryColor {
-  static readonly NEUTRAL: string = '#778291'
+  static readonly NEUTRAL: string = '#3F704F'
   static readonly PRESETS: string[] = [
     '#536F9E', '#4D8068', '#3E7C84', '#78659A',
     '#9A654F', '#96752F', '#8A5F78', '#5E718C'
