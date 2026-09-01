@@ -16,7 +16,7 @@ struct Index {
 
   @Builder
   private PageContent() {
-    if (this.isCompactWindow || this.selectedTab === AppTab.FOCUS) {
+    if (this.selectedTab === AppTab.FOCUS) {
       FocusPage({ isWide: this.isWide, isCompact: this.isCompactWindow })
     } else if (this.selectedTab === AppTab.INSIGHTS) {
       InsightsPage({ isWide: this.isWide })
@@ -48,7 +48,7 @@ struct Index {
         .width('100%')
         .layoutWeight(1)
 
-        if (!this.isWide && !this.isCompactWindow) {
+        if (!this.isWide) {
           AppNavigation({
             selectedTab: this.selectedTab,
             isWide: false,
