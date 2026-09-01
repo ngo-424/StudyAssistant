@@ -14,7 +14,7 @@ function transfer(overrides: Partial<ContinuationTransferEntity> = {}): Continua
     flowId: '00000000-0000-4000-8000-000000000002',
     phaseSessionId: '00000000-0000-4000-8000-000000000003',
     sourceDeviceId: 'source-device',
-    sourceVersion: 1,
+    sourceVersion: 1_000_000,
     expiresAt: new Date(NOW.getTime() + 60_000),
     claimedAt: null,
     targetDeviceId: null,
@@ -27,7 +27,7 @@ function input(overrides: Partial<ContinuationClaimInput> = {}): ContinuationCla
   return {
     userId: '00000000-0000-4000-8000-000000000001',
     targetDeviceId: 'target-device',
-    targetVersion: 1,
+    targetVersion: 1_010_000,
     now: NOW,
     ...overrides,
   };
@@ -50,7 +50,7 @@ describe('ContinuationRules', () => {
   it('keeps ownership at the source for account, network-independent expiry and version failures', () => {
     expect(ContinuationRules.decideClaim(transfer(), input({ userId: 'other-account' })))
       .toBe(ContinuationClaimDecision.ACCOUNT_MISMATCH);
-    expect(ContinuationRules.decideClaim(transfer(), input({ targetVersion: 2 })))
+    expect(ContinuationRules.decideClaim(transfer(), input({ targetVersion: 2_000_000 })))
       .toBe(ContinuationClaimDecision.VERSION_MISMATCH);
     expect(ContinuationRules.decideClaim(transfer({ expiresAt: NOW }), input()))
       .toBe(ContinuationClaimDecision.EXPIRED);
@@ -59,5 +59,12 @@ describe('ContinuationRules', () => {
   it('does not allow a source device to claim its own transfer token', () => {
     expect(ContinuationRules.decideClaim(transfer(), input({ targetDeviceId: 'source-device' })))
       .toBe(ContinuationClaimDecision.SOURCE_DEVICE);
+  });
+
+  it('allows 1.0 and 1.1 devices to exchange protocol v1 payloads', () => {
+    expect(ContinuationRules.compatibleVersions(1_000_000, 1_010_000)).toBe(true);
+    expect(ContinuationRules.compatibleVersions(1_010_000, 1_000_000)).toBe(true);
+    expect(ContinuationRules.compatibleVersions(1_010_000, 1_010_000)).toBe(true);
+    expect(ContinuationRules.compatibleVersions(1_010_000, 1_020_000)).toBe(false);
   });
 });
