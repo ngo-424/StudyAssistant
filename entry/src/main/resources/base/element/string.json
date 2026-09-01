@@ -174,7 +174,7 @@
     },
     {
       "name": "tasks_create_short",
-      "value": "+ 新建"
+      "value": "新建任务"
     },
     {
       "name": "tasks_filter_todo",
@@ -262,7 +262,7 @@
     },
     {
       "name": "category_create_action",
-      "value": "+ 新建类别"
+      "value": "新建类别"
     },
     {
       "name": "category_empty",
@@ -278,7 +278,7 @@
     },
     {
       "name": "category_custom_color",
-      "value": "自定义颜色"
+      "value": "颜色值"
     },
     {
       "name": "category_delete_title",
@@ -411,6 +411,54 @@
     {
       "name": "settings_long_break_range",
       "value": "每轮 1–180 分钟"
+    },
+    {
+      "name": "common_close",
+      "value": "关闭"
+    },
+    {
+      "name": "task_saving",
+      "value": "正在保存任务"
+    },
+    {
+      "name": "task_saved",
+      "value": "任务已保存"
+    },
+    {
+      "name": "task_completed",
+      "value": "任务已完成"
+    },
+    {
+      "name": "task_reopened",
+      "value": "任务已恢复为进行中"
+    },
+    {
+      "name": "task_moved_to_trash",
+      "value": "任务已移到回收站"
+    },
+    {
+      "name": "task_restored",
+      "value": "任务已恢复"
+    },
+    {
+      "name": "category_saving",
+      "value": "正在保存类别"
+    },
+    {
+      "name": "category_saved",
+      "value": "类别已保存"
+    },
+    {
+      "name": "category_deleted",
+      "value": "类别已删除，原任务仍会保留"
+    },
+    {
+      "name": "category_restored",
+      "value": "类别已恢复"
+    },
+    {
+      "name": "category_custom_color_show",
+      "value": "自定义颜色"
     }
   ]
 }
