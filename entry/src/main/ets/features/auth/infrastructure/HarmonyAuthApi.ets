@@ -5,7 +5,7 @@ import {
   AuthSessionPayload,
   RequestCodeResult
 } from '../domain/AuthModels'
-import { AUTH_API_BASE_URL } from './AuthEndpoint'
+import { AUTH_API_BASE_URL, AUTH_API_CONFIGURED } from './AuthEndpoint'
 
 interface EmailDeviceBody {
   email: string
@@ -58,6 +58,9 @@ export class HarmonyAuthApi implements AuthApi {
 
   private async request<T>(path: string, method: http.RequestMethod, body: string,
     accessToken: string = ''): Promise<T> {
+    if (!AUTH_API_CONFIGURED && this.baseUrl === AUTH_API_BASE_URL) {
+      throw new AuthApiError(503, 'SERVICE_NOT_CONFIGURED')
+    }
     const client: http.HttpRequest = http.createHttp()
     const headers: Record<string, string> = { 'Content-Type': 'application/json' }
     if (accessToken.length > 0) {

@@ -11,6 +11,7 @@ import taskManagementTest from './TaskManagement.test'
 import authRulesTest from './AuthRules.test'
 import syncProfileTest from './SyncProfile.test'
 import continuationRulesTest from './ContinuationRules.test'
+import dataExportSerializerTest from './DataExportSerializer.test'
 
 export default function testsuite() {
   dataFoundationTest()
@@ -26,4 +27,5 @@ export default function testsuite() {
   authRulesTest()
   syncProfileTest()
   continuationRulesTest()
+  dataExportSerializerTest()
 }

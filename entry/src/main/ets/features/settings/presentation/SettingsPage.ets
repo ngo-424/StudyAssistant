@@ -5,6 +5,7 @@ import { TimerConfigRules } from '../../focus/domain/TimerConfigRules'
 import { FocusSettingsViewModel } from './FocusSettingsViewModel'
 import { AccountPanel } from '../../auth/presentation/AccountPanel'
 import { SyncPanel } from '../../sync/presentation/SyncPanel'
+import { DataAndPrivacyPanel } from './DataAndPrivacyPanel'
 
 @Component
 struct SettingRow {
@@ -243,6 +244,7 @@ export struct SettingsPage {
             onProfileChanged: () => this.profileVersion++
           })
           SyncPanel({ profileVersion: this.profileVersion })
+          DataAndPrivacyPanel()
           SettingRow({ icon: '◐', title: $r('app.string.appearance'), description: $r('app.string.appearance_desc') })
         }
         .width('100%')

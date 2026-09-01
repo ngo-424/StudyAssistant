@@ -274,9 +274,16 @@ export struct AccountPanel {
           .fontColor($r('app.color.text_secondary'))
       }
       .layoutWeight(1).alignItems(HorizontalAlign.Start)
-      Button('邮箱登录').height(40).fontSize(AppTypography.CAPTION)
-        .fontColor($r('app.color.brand_on_primary')).backgroundColor($r('app.color.brand_primary'))
-        .borderRadius(AppRadius.SM).onClick(() => this.beginLogin())
+      Column({ space: AppSpacing.SM }) {
+        Button('邮箱登录').height(40).fontSize(AppTypography.CAPTION)
+          .fontColor($r('app.color.brand_on_primary')).backgroundColor($r('app.color.brand_primary'))
+          .borderRadius(AppRadius.SM).onClick(() => this.beginLogin())
+        if (this.guestTaskCount > 0 || this.guestFocusCount > 0 || this.guestPoints > 0) {
+          Button('删除本机数据').height(36).fontSize(AppTypography.CAPTION)
+            .fontColor($r('app.color.danger')).backgroundColor($r('app.color.danger_container'))
+            .borderRadius(AppRadius.SM).onClick(() => this.confirmDeleteGuestData())
+        }
+      }
     }
     .width('100%')
   }

@@ -1,7 +1,7 @@
 import { hilog } from '@kit.PerformanceAnalysisKit'
 
 const DOMAIN: number = 0x5354
-const LOG_TAG: string = 'StudyAssistant'
+const LOG_TAG: string = 'Shiya'
 
 export class AppLogger {
   static info(scope: string, message: string): void {

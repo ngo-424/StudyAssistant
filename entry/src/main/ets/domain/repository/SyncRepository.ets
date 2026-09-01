@@ -13,4 +13,5 @@ export interface SyncRepository {
   findConflicts(profileId: string): Promise<SyncConflict[]>
   resolveConflict(id: string, resolvedAt: number): Promise<void>
   deleteGuestData(): Promise<void>
+  deleteProfileData(profileId: string): Promise<void>
 }

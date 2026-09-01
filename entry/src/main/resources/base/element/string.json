@@ -2,7 +2,7 @@
   "string": [
     {
       "name": "module_desc",
-      "value": "StudyAssistant 专注计时工具"
+      "value": "时芽专注计时工具"
     },
     {
       "name": "EntryAbility_desc",
@@ -10,7 +10,7 @@
     },
     {
       "name": "EntryAbility_label",
-      "value": "StudyAssistant"
+      "value": "时芽"
     },
     {
       "name": "tab_focus",

@@ -165,20 +165,27 @@ export class LocalSyncRepository implements SyncRepository {
   }
 
   async deleteGuestData(): Promise<void> {
+    await this.deleteProfileData(GUEST_PROFILE_ID)
+  }
+
+  async deleteProfileData(profileId: string): Promise<void> {
     let transaction: relationalStore.Transaction | null = null
     try {
       transaction = await this.store.createTransaction({
         transactionType: relationalStore.TransactionType.IMMEDIATE
       })
       await transaction.execute(`DELETE FROM ${DatabaseTable.ACHIEVEMENTS} WHERE profile_id = ?`,
-        [GUEST_PROFILE_ID])
+        [profileId])
       await transaction.execute(`DELETE FROM ${DatabaseTable.REWARD_EVENTS} WHERE profile_id = ?`,
-        [GUEST_PROFILE_ID])
+        [profileId])
       await transaction.execute(`DELETE FROM ${DatabaseTable.FOCUS_SESSIONS} WHERE profile_id = ?`,
-        [GUEST_PROFILE_ID])
-      await transaction.execute(`DELETE FROM ${DatabaseTable.TASKS} WHERE profile_id = ?`, [GUEST_PROFILE_ID])
-      await transaction.execute(`DELETE FROM ${DatabaseTable.CATEGORIES} WHERE profile_id = ?`, [GUEST_PROFILE_ID])
-      await transaction.execute(`DELETE FROM ${DatabaseTable.SETTINGS} WHERE profile_id = ?`, [GUEST_PROFILE_ID])
+        [profileId])
+      await transaction.execute(`DELETE FROM ${DatabaseTable.TASKS} WHERE profile_id = ?`, [profileId])
+      await transaction.execute(`DELETE FROM ${DatabaseTable.CATEGORIES} WHERE profile_id = ?`, [profileId])
+      await transaction.execute(`DELETE FROM ${DatabaseTable.SETTINGS} WHERE profile_id = ?`, [profileId])
+      await transaction.execute(`DELETE FROM ${DatabaseTable.SYNC_CONFLICTS} WHERE profile_id = ?`, [profileId])
+      await transaction.execute(`DELETE FROM ${DatabaseTable.SYNC_MUTATIONS} WHERE profile_id = ?`, [profileId])
+      await transaction.execute(`DELETE FROM ${DatabaseTable.SYNC_METADATA} WHERE profile_id = ?`, [profileId])
       await transaction.commit()
     } catch (error) {
       if (transaction !== null) {
@@ -187,7 +194,7 @@ export class LocalSyncRepository implements SyncRepository {
         } catch (rollbackError) {
         }
       }
-      throw new AppError(AppErrorCode.DATABASE, `Unable to delete guest data: ${JSON.stringify(error)}`)
+      throw new AppError(AppErrorCode.DATABASE, `Unable to delete profile data: ${JSON.stringify(error)}`)
     }
   }
 
