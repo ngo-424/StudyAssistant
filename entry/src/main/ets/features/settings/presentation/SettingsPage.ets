@@ -6,9 +6,16 @@ import { AppActionButton, ActionState, AppStatusBanner, MessageTone } from '../.
 import { AccountPanel } from '../../auth/presentation/AccountPanel'
 import { TimerConfigRules } from '../../focus/domain/TimerConfigRules'
 import { SyncPanel } from '../../sync/presentation/SyncPanel'
+import {
+  PRIVACY_POLICY,
+  PRIVACY_POLICY_TITLE,
+  USER_AGREEMENT,
+  USER_AGREEMENT_TITLE
+} from '../domain/LegalDocuments'
 import { DataAndPrivacyPanel } from './DataAndPrivacyPanel'
 import { FocusSettingsViewModel } from './FocusSettingsViewModel'
 import { SettingsDestination } from './SettingsDestination'
+import { LegalDocumentPage } from './LegalDocumentPage'
 
 @Component
 struct SettingRow {
@@ -214,6 +221,15 @@ export struct SettingsPage {
     return error instanceof AppError ? '请检查时长设置后再保存' : '设置暂时没有保存成功，请重试'
   }
 
+  private goBack(): void {
+    if (this.destination === SettingsDestination.PRIVACY_POLICY ||
+      this.destination === SettingsDestination.USER_AGREEMENT) {
+      this.destination = SettingsDestination.PRIVACY
+      return
+    }
+    this.destination = SettingsDestination.OVERVIEW
+  }
+
   build() {
     Scroll() {
       Column({ space: AppSpacing.LG }) {
@@ -303,9 +319,18 @@ export struct SettingsPage {
     } else if (this.destination === SettingsDestination.SYNC) {
       this.DetailHeader($r('app.string.settings_sync'), $r('app.string.settings_sync_desc'))
       SyncPanel({ profileVersion: this.profileVersion })
-    } else {
+    } else if (this.destination === SettingsDestination.PRIVACY) {
       this.DetailHeader($r('app.string.settings_data_privacy'), $r('app.string.settings_data_privacy_desc'))
-      DataAndPrivacyPanel()
+      DataAndPrivacyPanel({
+        onOpenPrivacy: () => this.destination = SettingsDestination.PRIVACY_POLICY,
+        onOpenAgreement: () => this.destination = SettingsDestination.USER_AGREEMENT
+      })
+    } else if (this.destination === SettingsDestination.PRIVACY_POLICY) {
+      this.DetailHeader(PRIVACY_POLICY_TITLE, '了解时芽如何处理和保护你的数据')
+      LegalDocumentPage({ content: PRIVACY_POLICY })
+    } else {
+      this.DetailHeader(USER_AGREEMENT_TITLE, '使用时芽前请阅读这些约定')
+      LegalDocumentPage({ content: USER_AGREEMENT })
     }
   }
 
@@ -322,7 +347,7 @@ export struct SettingsPage {
       .backgroundColor($r('app.color.surface_primary'))
       .borderRadius(AppRadius.PILL)
       .accessibilityText($r('app.string.common_back'))
-      .onClick(() => this.destination = SettingsDestination.OVERVIEW)
+      .onClick(() => this.goBack())
 
       Column({ space: AppSpacing.XS }) {
         Text(title)
