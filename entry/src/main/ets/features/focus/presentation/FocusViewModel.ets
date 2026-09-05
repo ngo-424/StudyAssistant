@@ -52,7 +52,7 @@ export class FocusViewModel {
     this.tasks = tasks
     this.categories = categories
     const preview: TimerRuntimeState = await coordinator.peek()
-    this.continuationStatus = await this.continuation().update(preview, false)
+    this.continuationStatus = await this.continuation().update(preview, true)
     const runtime: TimerRuntimeState = this.continuationStatus.isController ?
       await coordinator.restore() : preview
     await this.synchronizeSystem(runtime)
@@ -94,6 +94,19 @@ export class FocusViewModel {
 
   async abandon(): Promise<TimerRuntimeState> {
     return this.synchronize(await (await this.getCoordinator()).abandon())
+  }
+
+  async saveAbandonReason(phaseSessionId: string, reason: string): Promise<void> {
+    const trimmed: string = reason.trim().slice(0, 240)
+    if (trimmed.length === 0 || phaseSessionId.length === 0) {
+      return
+    }
+    await RepositoryRegistry.settings().save({
+      profileId: ProfileContext.currentProfileId(),
+      key: `focus_abandon_reason_${phaseSessionId}`,
+      value: trimmed,
+      updatedAt: Date.now()
+    })
   }
 
   async startNextPhase(): Promise<TimerRuntimeState> {

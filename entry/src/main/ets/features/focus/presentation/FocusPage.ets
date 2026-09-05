@@ -13,6 +13,7 @@ import { CategoryColor } from '../../tasks/domain/CategoryColor'
 import { TimerRuntimeState } from '../domain/TimerModels'
 import { TimerConfigRules } from '../domain/TimerConfigRules'
 import { FocusPresentation } from './FocusPresentation'
+import { FocusOperationQueue } from './FocusOperationQueue'
 import { FocusScreenData, FocusViewModel } from './FocusViewModel'
 import { FocusSystemPolicy } from '../system/FocusSystemPolicy'
 import {
@@ -29,6 +30,14 @@ import {
 export struct FocusPage {
   @Prop isWide: boolean = false
   @Prop isCompact: boolean = false
+  @Prop @Watch('onForegroundRevisionChanged') foregroundRevision: number = 0
+  onImmersiveChange: (immersive: boolean) => void = () => {}
+  onActiveChange: (active: boolean) => void = () => {}
+  @State viewportHeight: number = 0
+  @State viewportWidth: number = 360
+  @State transferredViewDismissed: boolean = false
+  @State showAbandonReasonDialog: boolean = false
+  @State abandonReason: string = ''
   @State tasks: StudyTask[] = []
   @State categories: TaskCategory[] = []
   @State selectedTaskId: string = ''
@@ -47,21 +56,62 @@ export struct FocusPage {
     isController: true
   }
   private readonly viewModel: FocusViewModel = new FocusViewModel()
+  private readonly operations: FocusOperationQueue = new FocusOperationQueue()
+  private mounted: boolean = false
+  private refreshPending: boolean = false
   private timerId: number = -1
   private tickBusy: boolean = false
   private autoTransitioning: boolean = false
 
   aboutToAppear(): void {
-    this.load()
+    this.mounted = true
+    this.refresh()
     if (this.timerId < 0) {
       this.timerId = setInterval(() => this.tick(), 1000)
     }
   }
 
   aboutToDisappear(): void {
+    this.mounted = false
     if (this.timerId >= 0) {
       clearInterval(this.timerId)
       this.timerId = -1
+    }
+  }
+
+  private onForegroundRevisionChanged(): void {
+    this.refresh()
+  }
+
+  private async refresh(): Promise<void> {
+    if (!this.mounted || this.refreshPending) {
+      return
+    }
+    this.refreshPending = true
+    try {
+      await this.operations.run(async () => {
+        while (this.mounted) {
+          const revision: number = this.foregroundRevision
+          await this.load()
+          if (revision === this.foregroundRevision) {
+            break
+          }
+        }
+      })
+    } finally {
+      this.refreshPending = false
+    }
+  }
+
+  private isImmersive(): boolean {
+    return FocusPresentation.isImmersive(this.runtime.snapshot?.state ?? null) && !this.transferredViewDismissed
+  }
+
+  private notifyPresentation(): void {
+    if (this.mounted && !this.loading) {
+      this.onImmersiveChange(this.isImmersive())
+      this.onActiveChange(this.continuationStatus.isController &&
+        FocusPresentation.isActive(this.runtime.snapshot?.state ?? null))
     }
   }
 
@@ -76,23 +126,27 @@ export struct FocusPage {
       }
       await this.applyRuntime(data.runtime, true)
       this.systemStatus = this.viewModel.systemStatus()
-      this.continuationStatus = data.continuation
       this.errorMessage = ''
     } catch (error) {
       this.errorMessage = this.readableError(error)
     } finally {
       this.loading = false
+      this.notifyPresentation()
     }
   }
 
   private async tick(): Promise<void> {
-    if (this.tickBusy || this.runtime.snapshot === null ||
+    if (!this.mounted || this.tickBusy || this.actionBusy || this.refreshPending || this.runtime.snapshot === null ||
       this.runtime.snapshot.state !== TimerRunState.RUNNING) {
       return
     }
     this.tickBusy = true
     try {
-      await this.applyRuntime(await this.viewModel.observe(), true)
+      await this.operations.run(async () => {
+        if (this.mounted && this.runtime.snapshot?.state === TimerRunState.RUNNING) {
+          await this.applyRuntime(await this.viewModel.observe(), true)
+        }
+      })
     } catch (error) {
       this.errorMessage = this.readableError(error)
     } finally {
@@ -101,9 +155,11 @@ export struct FocusPage {
   }
 
   private async start(): Promise<void> {
-    const context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
-    this.systemStatus = await this.viewModel.requestNotificationPermission(context)
-    if (await this.runAction(async () => this.viewModel.start(this.selectedTask()), '专注已开始')) {
+    if (await this.runAction(async () => {
+      const context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
+      this.systemStatus = await this.viewModel.requestNotificationPermission(context)
+      return this.viewModel.start(this.selectedTask())
+    }, '专注已开始')) {
       await HapticFeedbackService.touch()
     }
   }
@@ -116,13 +172,34 @@ export struct FocusPage {
     await this.runAction(async () => this.viewModel.resume(), '继续保持现在的节奏')
   }
 
-  private async finishEarly(): Promise<void> {
-    await this.runAction(async () => this.viewModel.finishEarly(), '本阶段已提前结束')
+  private async finishEarlyAndContinue(): Promise<void> {
+    const phase: FocusPhase | null = this.runtime.snapshot?.phase ?? null
+    if (phase === FocusPhase.FOCUS) {
+      const finished: boolean = await this.runAction(async () => this.viewModel.finishEarly(), '')
+      if (finished && this.runtime.snapshot?.state === TimerRunState.COMPLETED) {
+        await this.runAction(async () => this.viewModel.startNextPhase(), '已自动开始休息')
+      }
+      return
+    }
+    this.confirmBreakFinish()
+  }
+
+  private openAbandonReason(): void {
+    this.abandonReason = ''
+    this.showAbandonReasonDialog = true
   }
 
   private async abandon(): Promise<void> {
-    if (await this.runAction(async () => this.viewModel.abandon(), '本阶段已放弃')) {
+    const phaseSessionId: string = this.runtime.snapshot?.phaseSessionId ?? ''
+    if (await this.runAction(async () => this.viewModel.abandon(), '本次计时已放弃')) {
+      try {
+        await this.viewModel.saveAbandonReason(phaseSessionId, this.abandonReason)
+      } catch (_error) {
+        this.errorMessage = '放弃理由保存失败，但本次计时已结束'
+      }
+      this.showAbandonReasonDialog = false
       await HapticFeedbackService.success()
+      await this.dismissTerminal()
     }
   }
 
@@ -131,14 +208,15 @@ export struct FocusPage {
   }
 
   private async dismissTerminal(): Promise<void> {
-    if (this.actionBusy) {
+    if (this.actionBusy || this.loading) {
       return
     }
     this.actionBusy = true
     try {
-      await this.viewModel.dismissTerminal()
-      this.runtime = { config: this.runtime.config, snapshot: null, reading: null }
-      this.systemStatus = this.viewModel.systemStatus()
+      await this.operations.run(async () => {
+        await this.viewModel.dismissTerminal()
+        await this.applyRuntime({ config: this.runtime.config, snapshot: null, reading: null }, false)
+      })
       this.errorMessage = ''
       this.actionMessage = '已回到准备状态'
     } catch (error) {
@@ -149,12 +227,12 @@ export struct FocusPage {
   }
 
   private async runAction(action: () => Promise<TimerRuntimeState>, successMessage: string): Promise<boolean> {
-    if (this.actionBusy) {
+    if (this.actionBusy || this.loading) {
       return false
     }
     this.actionBusy = true
     try {
-      await this.applyRuntime(await action(), false)
+      await this.operations.run(async () => this.applyRuntime(await action(), false))
       this.errorMessage = ''
       this.actionMessage = successMessage
       return true
@@ -171,21 +249,24 @@ export struct FocusPage {
     const previousState: TimerRunState | null = this.runtime.snapshot?.state ?? null
     this.runtime = runtime
     this.systemStatus = this.viewModel.systemStatus()
-    this.continuationStatus = this.viewModel.continuationState()
     const context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext
     await this.viewModel.updateContinuationAvailability(context, runtime)
+    this.continuationStatus = this.viewModel.continuationState()
+    if (this.continuationStatus.isController) {
+      this.transferredViewDismissed = false
+    }
+    this.notifyPresentation()
     if (runtime.snapshot?.state === TimerRunState.COMPLETED && previousState !== TimerRunState.COMPLETED) {
       await HapticFeedbackService.success()
     }
-    if (!allowAutomaticStart || runtime.snapshot === null || this.autoTransitioning ||
+    if (!allowAutomaticStart || !this.continuationStatus.isController || runtime.snapshot === null || this.autoTransitioning ||
       !FocusPresentation.shouldAutoStart(runtime.snapshot.state, runtime.snapshot.terminalResult,
         runtime.snapshot.phase, runtime.config)) {
       return
     }
     this.autoTransitioning = true
     try {
-      this.runtime = await this.viewModel.startNextPhase()
-      this.systemStatus = this.viewModel.systemStatus()
+      await this.applyRuntime(await this.viewModel.startNextPhase(), false)
     } finally {
       this.autoTransitioning = false
     }
@@ -244,24 +325,40 @@ export struct FocusPage {
     return this.runtime.snapshot === null ? '专注' : FocusPresentation.phaseLabel(this.runtime.snapshot.phase)
   }
 
-  private confirmFinishEarly(): void {
+  private requestEarlyFinish(): void {
+    if (this.actionBusy || this.loading) {
+      return
+    }
+    const isFocus: boolean = this.runtime.snapshot?.phase === FocusPhase.FOCUS
+    if (!isFocus) {
+      this.confirmBreakFinish()
+      return
+    }
     this.getUIContext().showAlertDialog({
-      title: '提前结束本阶段？',
-      message: '本次会记录实际用时，但不会计为完整专注轮次。',
-      primaryButton: { value: $r('app.string.common_cancel'), action: () => {} },
-      secondaryButton: { value: '确认结束', action: () => this.finishEarly() }
+      title: '提前结束计时',
+      message: '可选择放弃或者提前完成计时，当前计时会立刻停止并自动开始休息。',
+      buttonDirection: DialogButtonDirection.VERTICAL,
+      buttons: [
+        { value: '放弃本次计时（不记录时长）', fontColor: $r('app.color.text_secondary'), action: () => this.openAbandonReason() },
+        { value: '提前完成并记录已有时长', action: () => this.finishEarlyAndContinue() },
+        { value: '取消', action: () => {} }
+      ]
     })
   }
 
-  private confirmAbandon(): void {
+  private confirmBreakFinish(): void {
     this.getUIContext().showAlertDialog({
-      title: '放弃本阶段？',
-      message: '本次会标记为已放弃，并保留实际经过的时间。',
-      primaryButton: { value: $r('app.string.common_cancel'), action: () => {} },
-      secondaryButton: {
-        value: '放弃', fontColor: $r('app.color.danger'), action: () => this.abandon()
-      }
+      title: '退出休息？',
+      message: '是否退出休息并返回首页？',
+      primaryButton: { value: '取消', action: () => {} },
+      secondaryButton: { value: '确定', action: () => this.finishBreakAndReturn() }
     })
+  }
+
+  private async finishBreakAndReturn(): Promise<void> {
+    if (await this.runAction(async () => this.viewModel.finishEarly(), '')) {
+      await this.dismissTerminal()
+    }
   }
 
   private readableError(error: Object): string {
@@ -275,6 +372,108 @@ export struct FocusPage {
   }
 
   build() {
+    Stack() {
+      if (this.isImmersive()) {
+        this.ImmersiveContent()
+      } else {
+        this.PreparationContent()
+      }
+      if (this.showAbandonReasonDialog) {
+        this.AbandonReasonDialog()
+      }
+    }
+    .width('100%')
+    .height('100%')
+    .backgroundColor(this.isImmersive() ? $r('app.color.surface_tinted') : $r('app.color.app_background'))
+    .onAreaChange((_oldArea: Area, newArea: Area) => {
+      this.viewportHeight = Number(newArea.height)
+      this.viewportWidth = Number(newArea.width)
+    })
+  }
+
+  private immersiveLabel(): string {
+    if (!this.continuationStatus.isController) {
+      return '已在另一设备继续'
+    }
+    const snapshot = this.runtime.snapshot
+    return snapshot === null ? '' :
+      FocusPresentation.immersiveLabel(snapshot.state, snapshot.phase, snapshot.terminalResult)
+  }
+
+  private ringSize(): number {
+    return Math.min(this.isCompact ? 172 : (this.isWide ? 310 : 280), Math.max(120, this.viewportWidth - 48))
+  }
+
+  @Builder
+  private TimerDigits() {
+    Text(this.timeText())
+      .fontSize(this.isCompact ? 40 : (this.isWide ? 76 : AppTypography.DISPLAY))
+      .minFontSize(this.isCompact ? 28 : 40)
+      .maxFontSize(this.isCompact ? 40 : (this.isWide ? 76 : AppTypography.DISPLAY))
+      .maxLines(1)
+      .fontWeight(FontWeight.Bold)
+      .fontColor($r('app.color.text_primary'))
+      .textAlign(TextAlign.Center)
+      .width('100%')
+      .maxFontScale(1.5)
+  }
+
+  @Builder
+  private ImmersiveContent() {
+    Scroll() {
+      Column({ space: this.isCompact ? AppSpacing.MD : AppSpacing.XL }) {
+        Text(this.immersiveLabel())
+          .fontSize(AppTypography.BODY)
+          .fontWeight(FontWeight.Medium)
+          .fontColor($r('app.color.text_secondary'))
+          .textAlign(TextAlign.Center)
+          .width('100%')
+
+        if (this.errorMessage.length > 0) {
+          AppStatusBanner({ message: this.errorMessage, tone: MessageTone.ERROR })
+        }
+
+        if (FocusPresentation.showImmersiveDetails(this.viewportHeight)) {
+          Stack({ alignContent: Alignment.Center }) {
+            Progress({ value: this.progressValue(), total: 100, type: ProgressType.Ring })
+              .width(this.ringSize()).height(this.ringSize())
+              .color(this.accentColor())
+              .backgroundColor($r('app.color.surface_emphasis'))
+              .style({ strokeWidth: this.isCompact ? 8 : 12, enableSmoothEffect: true })
+            Column() {
+              this.TimerDigits()
+            }
+            .width(this.ringSize() - 40)
+          }
+          Text(this.linkedTask()?.title ?? $r('app.string.focus_free'))
+            .fontSize(AppTypography.BODY)
+            .fontColor($r('app.color.text_secondary'))
+            .textAlign(TextAlign.Center)
+            .maxLines(2)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+            .width('100%')
+        } else {
+          this.TimerDigits()
+        }
+
+        Column({ space: AppSpacing.SM }) {
+          this.ActionArea()
+        }
+        .width('100%')
+        .constraintSize({ maxWidth: 320 })
+      }
+      .width('100%')
+      .constraintSize({ minHeight: this.viewportHeight, maxWidth: 600 })
+      .justifyContent(FlexAlign.Center)
+      .padding(this.isCompact ? AppSpacing.MD : AppSpacing.XL)
+    }
+    .width('100%')
+    .height('100%')
+    .scrollBar(BarState.Off)
+  }
+
+  @Builder
+  private PreparationContent() {
     Scroll() {
       Column({ space: AppSpacing.LG }) {
         Column({ space: AppSpacing.XS }) {
@@ -377,11 +576,23 @@ export struct FocusPage {
   @Builder
   private ActionArea() {
     if (!this.continuationStatus.isController && this.runtime.snapshot !== null) {
-      Button('已在另一设备继续')
-        .width(this.isWide ? 280 : '100%').height(AppControl.PRIMARY_HEIGHT)
-        .fontWeight(FontWeight.Bold).fontColor($r('app.color.text_secondary'))
-        .backgroundColor($r('app.color.surface_secondary')).borderRadius(AppRadius.MD)
-        .enabled(false)
+      Text('当前设备无法操作这次计时，可在另一设备继续。')
+        .fontSize(AppTypography.CAPTION).fontColor($r('app.color.text_secondary'))
+        .textAlign(TextAlign.Center)
+      Button(this.loading ? '正在检查' : '重新检查')
+        .width('100%').height(AppControl.PRIMARY_HEIGHT)
+        .fontColor($r('app.color.text_secondary')).backgroundColor($r('app.color.surface_secondary'))
+        .borderRadius(AppRadius.MD).enabled(!this.actionBusy && !this.loading)
+        .onClick(() => this.refresh())
+      if (!this.transferredViewDismissed) {
+        Button('返回主界面')
+          .width('100%').height(AppControl.MIN_TOUCH)
+          .fontColor($r('app.color.text_secondary')).backgroundColor(Color.Transparent)
+          .onClick(() => {
+            this.transferredViewDismissed = true
+            this.notifyPresentation()
+          })
+      }
     } else if (this.runtime.snapshot === null) {
       Button(this.actionBusy ? $r('app.string.focus_starting') : $r('app.string.focus_start'))
         .width(this.isWide ? 280 : '100%')
@@ -392,61 +603,49 @@ export struct FocusPage {
         .borderRadius(AppRadius.MD)
         .enabled(!this.actionBusy && !this.loading)
         .onClick(() => this.start())
-    } else if (this.runtime.snapshot.state === TimerRunState.RUNNING) {
-      Row({ space: AppSpacing.MD }) {
-        Button(this.actionBusy ? '正在处理' : '暂停')
-          .layoutWeight(1).height(AppControl.PRIMARY_HEIGHT).fontWeight(FontWeight.Bold)
-          .fontColor(CategoryColor.foregroundFor(this.accentColor()))
+    } else if (this.runtime.snapshot.state === TimerRunState.RUNNING ||
+      this.runtime.snapshot.state === TimerRunState.PAUSED) {
+      Row({ space: AppSpacing.LG }) {
+        Button() {
+          SymbolGlyph(this.runtime.snapshot?.state === TimerRunState.RUNNING ?
+            $r('sys.symbol.pause') : $r('sys.symbol.play'))
+            .fontSize(24)
+            .fontColor([CategoryColor.foregroundFor(this.accentColor())])
+        }
+          .width(72).height(56)
           .backgroundColor(this.accentColor()).borderRadius(AppRadius.MD)
-          .enabled(!this.actionBusy).onClick(() => this.pause())
-        Button('提前结束')
-          .layoutWeight(1).height(AppControl.PRIMARY_HEIGHT).fontColor($r('app.color.text_secondary'))
+          .enabled(!this.actionBusy && !this.loading)
+          .accessibilityText(this.runtime.snapshot.state === TimerRunState.RUNNING ? '暂停' : '继续')
+          .onClick(() => this.runtime.snapshot?.state === TimerRunState.RUNNING ? this.pause() : this.resume())
+        Button() {
+          SymbolGlyph($r('sys.symbol.square_fill'))
+            .fontSize(24)
+            .fontColor([$r('app.color.text_secondary')])
+        }
+          .width(72).height(56)
           .backgroundColor($r('app.color.surface_secondary')).borderRadius(AppRadius.MD)
-          .enabled(!this.actionBusy).onClick(() => this.confirmFinishEarly())
+          .enabled(!this.actionBusy && !this.loading)
+          .accessibilityText('退出')
+          .onClick(() => this.requestEarlyFinish())
       }
-      .width(this.isWide && !this.isCompact ? 520 : '100%')
-      Button('放弃本阶段')
-        .height(AppControl.MIN_TOUCH)
-        .fontSize(AppTypography.CAPTION).fontColor($r('app.color.danger'))
-        .backgroundColor(Color.Transparent).enabled(!this.actionBusy)
-        .onClick(() => this.confirmAbandon())
-    } else if (this.runtime.snapshot.state === TimerRunState.PAUSED) {
-      Row({ space: AppSpacing.MD }) {
-        Button(this.actionBusy ? '正在处理' : '继续')
-          .layoutWeight(1).height(AppControl.PRIMARY_HEIGHT).fontWeight(FontWeight.Bold)
-          .fontColor(CategoryColor.foregroundFor(this.accentColor()))
-          .backgroundColor(this.accentColor()).borderRadius(AppRadius.MD)
-          .enabled(!this.actionBusy).onClick(() => this.resume())
-        Button('提前结束')
-          .layoutWeight(1).height(AppControl.PRIMARY_HEIGHT).fontColor($r('app.color.text_secondary'))
-          .backgroundColor($r('app.color.surface_secondary')).borderRadius(AppRadius.MD)
-          .enabled(!this.actionBusy).onClick(() => this.confirmFinishEarly())
-      }
-      .width(this.isWide && !this.isCompact ? 520 : '100%')
-      Button('放弃本阶段')
-        .height(AppControl.MIN_TOUCH)
-        .fontSize(AppTypography.CAPTION).fontColor($r('app.color.danger'))
-        .backgroundColor(Color.Transparent).enabled(!this.actionBusy)
-        .onClick(() => this.confirmAbandon())
+      .justifyContent(FlexAlign.Center)
+      .width('100%')
     } else if (this.runtime.snapshot.state === TimerRunState.COMPLETED) {
-      Row({ space: AppSpacing.MD }) {
-        Button(this.runtime.snapshot.phase === FocusPhase.FOCUS ? '开始休息' : '开始下一轮专注')
-          .layoutWeight(1).height(AppControl.PRIMARY_HEIGHT).fontWeight(FontWeight.Bold)
-          .fontColor(CategoryColor.foregroundFor(this.accentColor()))
-          .backgroundColor(this.accentColor()).borderRadius(AppRadius.MD)
-          .enabled(!this.actionBusy).onClick(() => this.startNextPhase())
-        Button('暂不继续')
-          .layoutWeight(1).height(AppControl.PRIMARY_HEIGHT).fontColor($r('app.color.text_secondary'))
-          .backgroundColor($r('app.color.surface_secondary')).borderRadius(AppRadius.MD)
-          .enabled(!this.actionBusy).onClick(() => this.dismissTerminal())
-      }
-      .width(this.isWide && !this.isCompact ? 520 : '100%')
+      Button(this.runtime.snapshot.phase === FocusPhase.FOCUS ? '开始休息' : '开始下一轮专注')
+        .width('100%').height(AppControl.PRIMARY_HEIGHT).fontWeight(FontWeight.Bold)
+        .fontColor(CategoryColor.foregroundFor(this.accentColor()))
+        .backgroundColor(this.accentColor()).borderRadius(AppRadius.MD)
+        .enabled(!this.actionBusy && !this.loading).onClick(() => this.startNextPhase())
+      Button('返回准备页')
+        .width('100%').height(AppControl.MIN_TOUCH).fontColor($r('app.color.text_secondary'))
+        .backgroundColor(Color.Transparent).borderRadius(AppRadius.MD)
+        .enabled(!this.actionBusy && !this.loading).onClick(() => this.dismissTerminal())
     } else {
       Button('返回准备状态')
         .width(this.isWide ? 280 : '100%').height(AppControl.PRIMARY_HEIGHT)
         .fontWeight(FontWeight.Bold).fontColor($r('app.color.text_primary'))
         .backgroundColor($r('app.color.surface_secondary')).borderRadius(AppRadius.MD)
-        .enabled(!this.actionBusy).onClick(() => this.dismissTerminal())
+        .enabled(!this.actionBusy && !this.loading).onClick(() => this.dismissTerminal())
     }
   }
 
@@ -518,6 +717,56 @@ export struct FocusPage {
   }
 
   @Builder
+  private AbandonReasonDialog() {
+    Column() {
+      Column({ space: AppSpacing.MD }) {
+        Text('放弃本次计时')
+          .fontSize(AppTypography.SUBTITLE)
+          .fontWeight(FontWeight.Bold)
+          .fontColor($r('app.color.text_primary'))
+        Text('本次不会记录专注时长。填写理由有助于之后分析专注中断的原因（可选）。')
+          .fontSize(AppTypography.CAPTION)
+          .fontColor($r('app.color.text_secondary'))
+          .width('100%')
+        TextArea({ text: this.abandonReason, placeholder: '例如：临时有事、状态不佳……' })
+          .width('100%')
+          .height(120)
+          .maxLength(240)
+          .fontSize(AppTypography.BODY)
+          .fontColor($r('app.color.text_primary'))
+          .backgroundColor($r('app.color.surface_secondary'))
+          .borderRadius(AppRadius.SM)
+          .onChange((value: string) => this.abandonReason = value)
+        Row({ space: AppSpacing.MD }) {
+          Button('取消')
+            .layoutWeight(1).height(AppControl.MIN_TOUCH)
+            .fontColor($r('app.color.text_secondary'))
+            .backgroundColor($r('app.color.surface_secondary'))
+            .borderRadius(AppRadius.MD)
+            .enabled(!this.actionBusy)
+            .onClick(() => this.showAbandonReasonDialog = false)
+          Button('确认放弃')
+            .layoutWeight(1).height(AppControl.MIN_TOUCH)
+            .fontColor($r('app.color.brand_on_primary'))
+            .backgroundColor($r('app.color.danger'))
+            .borderRadius(AppRadius.MD)
+            .enabled(!this.actionBusy)
+            .onClick(() => this.abandon())
+        }
+        .width('100%')
+      }
+      .width('88%')
+      .padding(AppSpacing.XL)
+      .backgroundColor($r('app.color.surface_primary'))
+      .borderRadius(AppRadius.LG)
+    }
+    .width('100%')
+    .height('100%')
+    .backgroundColor('#66000000')
+    .justifyContent(FlexAlign.Center)
+  }
+
+  @Builder
   private ContinuationStatusCard() {
     Row({ space: AppSpacing.SM }) {
       SymbolGlyph(this.continuationStatus.state === ContinuationControlState.TRANSFERRED ?
@@ -540,10 +789,8 @@ export struct FocusPage {
           .fontSize(AppTypography.CAPTION)
           .fontColor($r('app.color.brand_primary'))
           .backgroundColor(Color.Transparent)
-          .onClick(async () => {
-            await this.viewModel.retryContinuation()
-            await this.load()
-          })
+          .enabled(!this.actionBusy && !this.loading)
+          .onClick(() => this.refresh())
       }
     }
     .width('100%').padding(AppSpacing.MD)

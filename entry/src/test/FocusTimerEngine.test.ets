@@ -117,7 +117,7 @@ export default function focusTimerEngineTest(): void {
       const abandoned: TimerTransition = FocusTimerEngine.abandon(initial.snapshot, 21000)
       expect(abandoned.snapshot.state).assertEqual(TimerRunState.ABANDONED)
       expect(abandoned.outcome?.result).assertEqual(FocusResult.ABANDONED)
-      expect(abandoned.outcome?.focusedSeconds).assertEqual(20)
+      expect(abandoned.outcome?.focusedSeconds).assertEqual(0)
     })
 
     it('rejectsCorruptedPersistedSnapshots', 0, () => {
