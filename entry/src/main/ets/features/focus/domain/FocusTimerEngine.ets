@@ -119,7 +119,9 @@ export class FocusTimerEngine {
     }
     const remaining: number = active.state === TimerRunState.PAUSED ?
       active.remainingSecondsAtPause ?? active.lastKnownRemainingSeconds : active.lastKnownRemainingSeconds
-    const elapsed: number = Math.max(0, active.plannedSeconds - remaining)
+    // Abandoning a session deliberately records no duration; the optional reason is
+    // kept separately for later analysis without inflating focus totals.
+    const elapsed: number = 0
     const terminal: ActiveTimerSnapshot = FocusTimerEngine.copy(
       active, TimerRunState.ABANDONED, active.deadlineAt, null, null,
       active.accumulatedPausedMs, active.completedFocusRounds, now, remaining, now, FocusResult.ABANDONED)

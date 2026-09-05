@@ -65,6 +65,7 @@ export default function continuationTest(): void {
       expect(ContinuationRules.compatibleTargetVersion('2.0.0')).assertFalse()
       expect(ContinuationRules.compatibleTargetVersion(CONTINUATION_APP_VERSION_CODE)).assertTrue()
       expect(ContinuationRules.compatibleTargetVersion('1.1.0')).assertTrue()
+      expect(ContinuationRules.compatibleTargetVersion('1.1.1')).assertTrue()
       expect(ContinuationRules.compatibleTargetVersion(CONTINUATION_PREVIOUS_APP_VERSION_CODE)).assertTrue()
       expect(ContinuationRules.compatibleTargetVersion('1.0.0')).assertTrue()
     })

@@ -38,7 +38,7 @@ export class ContinuationRules {
     }
     const text: string = `${value}`
     return text === `${CONTINUATION_APP_VERSION_CODE}` || text === `${CONTINUATION_PREVIOUS_APP_VERSION_CODE}` ||
-      text === '1.1.0' || text === '1.0.0'
+      text === '1.1.1' || text === '1.1.0' || text === '1.0.0'
   }
 
   static valid(envelope: ContinuationEnvelope): boolean {

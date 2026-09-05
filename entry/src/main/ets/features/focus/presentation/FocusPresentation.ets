@@ -1,6 +1,28 @@
 import { FocusPhase, FocusResult, TimerConfig, TimerRunState } from '../../../domain/model/StudyModels'
 
 export class FocusPresentation {
+  static isImmersive(state: TimerRunState | null): boolean {
+    return state !== null && state !== TimerRunState.IDLE
+  }
+
+  static isActive(state: TimerRunState | null): boolean {
+    return state === TimerRunState.RUNNING || state === TimerRunState.PAUSED
+  }
+
+  static showImmersiveDetails(height: number): boolean {
+    return height >= 400
+  }
+
+  static immersiveLabel(state: TimerRunState, phase: FocusPhase, result: FocusResult | null): string {
+    if (state === TimerRunState.PAUSED) {
+      return phase === FocusPhase.FOCUS ? '专注已暂停' : '休息已暂停'
+    }
+    if (state === TimerRunState.COMPLETED && result === FocusResult.INTERRUPTED) {
+      return '本阶段已提前结束'
+    }
+    return FocusPresentation.statusLabel(state, phase)
+  }
+
   static formatSeconds(totalSeconds: number): string {
     const safeSeconds: number = Math.max(0, Math.round(totalSeconds))
     const minutes: number = Math.floor(safeSeconds / 60)
